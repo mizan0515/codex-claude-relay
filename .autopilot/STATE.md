@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 3
+iteration: 5
 status: active-complete
 active_task: null
-# Last completed: F-impl-1 durable rolling-summary file (gate G6). Next: BACKLOG P2 [F-impl-2] carry-forward fields on RelaySessionState.
+# Last completed: F-impl-3 carry-forward injection primitive — TryBuildCarryForwardBlock + summary.loaded emission + CarryForwardPending flag (gate G7 full render path; population-from-handoff still pending as F-impl-3b follow-up). Next: BACKLOG P1 [F-impl-3b] populate Goal/Completed/Pending/Constraints from handoff envelope in CompleteHandoffAsync, then F-live-1.
 # active_task schema:
 #   slug: <kebab-case>
 #   plan: [bullet, bullet]

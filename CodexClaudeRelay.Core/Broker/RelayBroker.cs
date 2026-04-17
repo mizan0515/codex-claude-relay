@@ -112,6 +112,7 @@ public sealed class RelayBroker
             Completed = [],
             Pending = [],
             Constraints = [],
+            CarryForwardPending = false,
             LastUsageBySide = [],
             LastCumulativeByHandle = [],
             TotalInputTokens = 0,
@@ -414,15 +415,41 @@ public sealed class RelayBroker
         }
 
         State.NativeSessionHandles.TryGetValue(State.ActiveSide.ToString(), out var existingHandle);
+        var carryForward = TryBuildCarryForwardBlock();
         var turnContext = new RelayTurnContext(
             State.SessionId,
             State.CurrentTurn,
             State.ActiveSide,
             State.PendingPrompt,
-            existingHandle);
+            existingHandle,
+            carryForward);
         await PersistAndLogAsync(
             new RelayLogEvent(DateTimeOffset.Now, "turn.started", State.ActiveSide, $"Turn {State.CurrentTurn} submitted.", State.PendingPrompt),
             cancellationToken);
+        if (carryForward is not null)
+        {
+            var cfBytes = System.Text.Encoding.UTF8.GetByteCount(carryForward);
+            var cfFields =
+                (string.IsNullOrWhiteSpace(State.Goal) ? 0 : 1) +
+                State.Completed.Count + State.Pending.Count + State.Constraints.Count +
+                (string.IsNullOrWhiteSpace(State.LastHandoffHash) ? 0 : 1);
+            var cfPayload =
+                "{" +
+                $"\"segment\":{State.RotationCount}," +
+                $"\"bytes\":{cfBytes}," +
+                $"\"fields_populated\":{cfFields}," +
+                $"\"turn\":{State.CurrentTurn}" +
+                "}";
+            await PersistAndLogAsync(
+                new RelayLogEvent(
+                    DateTimeOffset.Now,
+                    "summary.loaded",
+                    State.ActiveSide,
+                    $"Carry-forward injected into turn {State.CurrentTurn} ({cfBytes} bytes, {cfFields} fields).",
+                    cfPayload),
+                cancellationToken);
+            State.CarryForwardPending = false;
+        }
 
         RelayAdapterResult turnResult;
         try
@@ -1320,6 +1347,7 @@ public sealed class RelayBroker
         State.CodexPricingFallbackAdvisoryFired = false;
         State.CodexRateCardStaleAdvisoryFired = false;
         State.PolicyGapAdvisoriesFired.Clear();
+        State.CarryForwardPending = true;
         State.UpdatedAt = DateTimeOffset.Now;
 
         await PersistAndLogAsync(
@@ -1658,6 +1686,61 @@ public sealed class RelayBroker
                     $"Rolling summary segment {segmentNumber} failed for session {sessionId}: {ex.GetType().Name}: {ex.Message}. path={path ?? "(not resolved)"}"),
                 cancellationToken);
         }
+    }
+
+    private string? TryBuildCarryForwardBlock()
+    {
+        if (!State.CarryForwardPending)
+        {
+            return null;
+        }
+
+        var hasContent =
+            !string.IsNullOrWhiteSpace(State.Goal)
+            || State.Completed.Count > 0
+            || State.Pending.Count > 0
+            || State.Constraints.Count > 0
+            || !string.IsNullOrWhiteSpace(State.LastHandoffHash);
+        if (!hasContent)
+        {
+            return null;
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("## Carry-forward").Append(Environment.NewLine);
+        if (!string.IsNullOrWhiteSpace(State.LastHandoffHash))
+        {
+            sb.Append("- prior_handoff_hash: ").Append(State.LastHandoffHash).Append(Environment.NewLine);
+        }
+        if (!string.IsNullOrWhiteSpace(State.Goal))
+        {
+            sb.Append("- goal: ").Append(State.Goal).Append(Environment.NewLine);
+        }
+        if (State.Completed.Count > 0)
+        {
+            sb.Append("### Completed").Append(Environment.NewLine);
+            foreach (var item in State.Completed)
+            {
+                sb.Append("- ").Append(item).Append(Environment.NewLine);
+            }
+        }
+        if (State.Pending.Count > 0)
+        {
+            sb.Append("### Pending").Append(Environment.NewLine);
+            foreach (var item in State.Pending)
+            {
+                sb.Append("- ").Append(item).Append(Environment.NewLine);
+            }
+        }
+        if (State.Constraints.Count > 0)
+        {
+            sb.Append("### Constraints").Append(Environment.NewLine);
+            foreach (var item in State.Constraints)
+            {
+                sb.Append("- ").Append(item).Append(Environment.NewLine);
+            }
+        }
+        return sb.ToString();
     }
 
     private string BuildRollingSummaryMarkdown(int segmentNumber, string rotationReason)

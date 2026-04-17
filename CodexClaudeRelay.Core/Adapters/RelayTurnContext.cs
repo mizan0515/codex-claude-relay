@@ -7,4 +7,5 @@ public sealed record RelayTurnContext(
     int TurnNumber,
     RelaySide SourceSide,
     string Prompt,
-    string? ExistingSessionHandle = null);
+    string? ExistingSessionHandle = null,
+    string? CarryForward = null);
