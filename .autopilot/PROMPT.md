@@ -541,10 +541,20 @@ Before exit, in order:
 > `[IMMUTABLE:wake-reschedule]`). Between Step 4 and Step 5, unless a halt
 > status applies, the agent MUST perform in order:
 >
+> - **4-pre. Select NEXT_DELAY value** — lookup the current exit status in
+>   the "Pacing (NEXT_DELAY)" table above (L506-518). Do NOT reuse the prior
+>   iter's value, carry a default from training, or round up "for safety".
+>   The table is the only source of truth:
+>     - active mid-task / active just-completed / idle-upkeep done /
+>       brainstorm done → **60**
+>     - env-broken → **1800**
+>     - halted / probation-revert → **3600**
+>   Write that exact integer to `.autopilot/NEXT_DELAY` as Step 4. Any
+>   deviation MUST cite an operator override line in STATE.md by prefix.
 > - **4a. Call `ScheduleWakeup`** — `delaySeconds` = the integer just written
->   to `.autopilot/NEXT_DELAY`; `prompt` = RUN.txt body verbatim;
->   `reason` = one short sentence. Declaring "rescheduled" in a summary is
->   NOT a substitute for the tool call.
+>   to `.autopilot/NEXT_DELAY` (NOT a different number). `prompt` = RUN.txt
+>   body verbatim; `reason` = one short sentence. Declaring "rescheduled"
+>   in a summary is NOT a substitute for the tool call.
 > - **4b. Write proof-of-call sentinel** `.autopilot/LAST_RESCHEDULE` only
 >   AFTER observing a successful `ScheduleWakeup` response. Content =
 >   2 lines: ISO-8601 UTC timestamp with trailing `Z`, then the raw tool
@@ -557,7 +567,10 @@ Before exit, in order:
 >
 > Rationale: this overlay is mutable so future operator tuning cannot be
 > self-evolved away; the IMMUTABLE wake-reschedule watchdog above is the
-> invariant that gives it teeth (iter 0 and iter 6 reschedule-miss).
+> invariant that gives it teeth. Failure cases documented to date:
+> iter 0 reschedule-miss, iter 6 reschedule-miss repeat, iter 7+8
+> pacing-drift (agent wrote 1800 when table mandated 60 for productive
+> paths; operator-flagged "1분간격으로 설정해놨는데 왜 또 한참뒤에").
 
 ---
 
