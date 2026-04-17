@@ -14,8 +14,11 @@ public static class RelayPromptBuilder
         var target = GetPeer(context.SourceSide);
         var sourceValue = ToProtocolValue(context.SourceSide);
         var targetValue = ToProtocolValue(target);
+        var carryForwardBlock = string.IsNullOrWhiteSpace(context.CarryForward)
+            ? string.Empty
+            : context.CarryForward + Environment.NewLine + Environment.NewLine;
 
-        return $$"""
+        return carryForwardBlock + $$"""
         This is a relay transport compliance turn, not a normal repo conversation.
         You are the {{sourceValue}} side of a relay session.
         The task is already provided below. Do not ask for another task. Do not ask the user to continue.

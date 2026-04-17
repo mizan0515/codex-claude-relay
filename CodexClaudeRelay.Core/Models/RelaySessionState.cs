@@ -34,6 +34,8 @@ public sealed class RelaySessionState
 
     public List<string> Constraints { get; set; } = [];
 
+    public bool CarryForwardPending { get; set; }
+
     public List<string> AcceptedRelayKeys { get; set; } = [];
 
     public Dictionary<string, string> NativeSessionHandles { get; set; } = [];
