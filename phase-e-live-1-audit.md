@@ -100,4 +100,4 @@ DAD workspace would close it.
 
 - `phase_e_demo/calc.py`, `test_calc.py`, `__init__.py` — left in
   TaskPulse workspace as untracked fixtures for re-use.
-- Session log: `%LocalAppData%\RelayAppMvp\logs\phase-e-edit-test-qa-20260417-200500.jsonl`.
+- Session log: `%LocalAppData%\CodexClaudeRelayMvp\logs\phase-e-edit-test-qa-20260417-200500.jsonl`.

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .githooks/protect.sh
 #
-# Pre-commit guard for the relay-app-mvp autopilot safety surface.
+# Pre-commit guard for the codex-claude-relay autopilot safety surface.
 #
 # Enforces (no commit-message access — that moves to commit-msg-protect.sh):
 #   1. .autopilot/PROMPT.md IMMUTABLE blocks cannot be modified.
@@ -55,7 +55,7 @@ fi
 
 # These paths must remain in STATE.md protected_paths: at all times.
 REQUIRED_PROTECTED=(
-  "RelayApp.sln"
+  "CodexClaudeRelay.sln"
   ".autopilot/PROMPT.md"
   ".autopilot/MVP-GATES.md"
   ".autopilot/CLEANUP-LOG.md"

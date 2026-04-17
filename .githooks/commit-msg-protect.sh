@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # .githooks/commit-msg-protect.sh
 #
-# Trailer-dependent gates for the relay-app-mvp autopilot. Runs as commit-msg
+# Trailer-dependent gates for the codex-claude-relay autopilot. Runs as commit-msg
 # hook because the trailer text is only reliably available after the message
 # is finalized.
 #
@@ -61,7 +61,7 @@ deleted_paths=$(git diff --cached --name-only --diff-filter=D || true)
 deleted_count=$(printf '%s\n' "$deleted_paths" | grep -cv '^$' || true)
 
 # Sensitive paths: anything that would disable the loop's safety surface.
-SENSITIVE_RE='^(RelayApp\.(Core|Desktop|CodexProtocol|CodexProtocol\.Spike)/|[A-Za-z0-9_.-]+-audit\.md$|phase-[a-z]-[a-z0-9-]+\.md$|\.githooks/|\.autopilot/)'
+SENSITIVE_RE='^(CodexClaudeRelay.(Core|Desktop|CodexProtocol|CodexProtocol\.Spike)/|[A-Za-z0-9_.-]+-audit\.md$|phase-[a-z]-[a-z0-9-]+\.md$|\.githooks/|\.autopilot/)'
 sensitive_hits=$(printf '%s\n' "$deleted_paths" | grep -E "$SENSITIVE_RE" || true)
 
 needs_approval="no"

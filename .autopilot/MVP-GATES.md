@@ -1,4 +1,4 @@
-# MVP-GATES — relay-app-mvp completion scorecard
+# MVP-GATES — codex-claude-relay completion scorecard
 
 Gate count: 8
 
@@ -23,8 +23,8 @@ rule break.
 ## G1 — Build is green end-to-end
 - [ ] `powershell -File .autopilot/project.ps1 test` exits 0 on a clean checkout, zero
       `error CS*` lines in output. Release config. All four projects compile:
-      `RelayApp.Core`, `RelayApp.Desktop`, `RelayApp.CodexProtocol`,
-      `RelayApp.CodexProtocol.Spike`.
+      `CodexClaudeRelay.Core`, `CodexClaudeRelay.Desktop`, `CodexClaudeRelay.CodexProtocol`,
+      `CodexClaudeRelay.CodexProtocol.Spike`.
 - Evidence: last `dotnet build` log tail (paste ≤10 lines showing "Build succeeded").
 
 ## G2 — App launches and adapter smoke passes
@@ -55,7 +55,7 @@ rule break.
 
 ## G6 — Rolling summary written durably (F-impl-1)
 - [ ] `RelayBroker.RotateSessionAsync` writes a markdown summary to
-      `%LocalAppData%\RelayAppMvp\summaries\{sessionId}-segment-{n}.md` BEFORE per-rotation
+      `%LocalAppData%\CodexClaudeRelayMvp\summaries\{sessionId}-segment-{n}.md` BEFORE per-rotation
       state reset. `summary.generated` emitted with bytes + cost fields. IO failure emits
       `summary.failed` and does not crash the broker.
 - Evidence: sample summary file (size + first 20 lines) + matching `summary.generated`

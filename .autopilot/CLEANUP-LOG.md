@@ -1,4 +1,4 @@
-# CLEANUP-LOG — relay-app-mvp deletion audit trail
+# CLEANUP-LOG — codex-claude-relay deletion audit trail
 
 Every Cleanup Phase B commit MUST append an entry here. Format:
 

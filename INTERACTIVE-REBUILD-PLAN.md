@@ -16,7 +16,7 @@ Build a protocol-first hybrid interactive runtime:
 
 Keep:
 
-- `RelayApp.Core` broker logic
+- `CodexClaudeRelay.Core` broker logic
 - handoff schema, parser, normalization, and smoke-test repair behavior
 - session persistence and event logging
 - the WPF shell, diagnostics, and operator workflow

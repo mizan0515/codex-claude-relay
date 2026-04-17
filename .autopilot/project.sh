@@ -14,8 +14,8 @@ case "$verb" in
     for c in git gh dotnet; do
       command -v "$c" >/dev/null || { echo "missing: $c"; exit 1; }
     done
-    [ -f 'RelayApp.sln' ] || { echo 'RelayApp.sln missing at repo root'; exit 1; }
-    for csproj in RelayApp.Core RelayApp.Desktop RelayApp.CodexProtocol RelayApp.CodexProtocol.Spike; do
+    [ -f 'CodexClaudeRelay.sln' ] || { echo 'CodexClaudeRelay.sln missing at repo root'; exit 1; }
+    for csproj in CodexClaudeRelay.Core CodexClaudeRelay.Desktop CodexClaudeRelay.CodexProtocol CodexClaudeRelay.CodexProtocol.Spike; do
       [ -f "$csproj/$csproj.csproj" ] || { echo "missing $csproj/$csproj.csproj"; exit 1; }
     done
     remote=$(git remote get-url origin 2>/dev/null || true)
@@ -33,22 +33,22 @@ case "$verb" in
     ;;
 
   test)
-    echo 'project.sh test: dotnet build RelayApp.sln -c Release'
-    dotnet build 'RelayApp.sln' -c Release --nologo -v minimal
+    echo 'project.sh test: dotnet build CodexClaudeRelay.sln -c Release'
+    dotnet build 'CodexClaudeRelay.sln' -c Release --nologo -v minimal
     ;;
 
   audit)
     echo '=== dotnet outdated ==='
-    dotnet list 'RelayApp.sln' package --outdated 2>/dev/null || true
+    dotnet list 'CodexClaudeRelay.sln' package --outdated 2>/dev/null || true
     echo ''
     echo '=== .cs file counts ==='
-    for p in RelayApp.Core RelayApp.Desktop RelayApp.CodexProtocol RelayApp.CodexProtocol.Spike; do
+    for p in CodexClaudeRelay.Core CodexClaudeRelay.Desktop CodexClaudeRelay.CodexProtocol CodexClaudeRelay.CodexProtocol.Spike; do
       n=$(find "$p" -name '*.cs' -not -path '*/bin/*' -not -path '*/obj/*' 2>/dev/null | wc -l)
       echo "  $p : $n"
     done
     echo ''
     echo '=== Churn hotspots (30 days) ==='
-    git log --since="30.days" --pretty=format: --name-only -- 'RelayApp.Core' 'RelayApp.Desktop' 'RelayApp.CodexProtocol' 'RelayApp.CodexProtocol.Spike' 2>/dev/null \
+    git log --since="30.days" --pretty=format: --name-only -- 'CodexClaudeRelay.Core' 'CodexClaudeRelay.Desktop' 'CodexClaudeRelay.CodexProtocol' 'CodexClaudeRelay.CodexProtocol.Spike' 2>/dev/null \
       | grep -E '\.cs$' | sort | uniq -c | sort -rn | head -10
     ;;
 
@@ -66,7 +66,7 @@ case "$verb" in
     done
     chmod +x "$target/pre-commit" "$target/commit-msg" "$target/protect.sh" "$target/commit-msg-protect.sh"
     bash "$target/pre-commit"
-    echo 'relay-app-mvp autopilot hooks installed and smoke-tested.'
+    echo 'codex-claude-relay autopilot hooks installed and smoke-tested.'
     ;;
 
   start)
@@ -80,11 +80,11 @@ case "$verb" in
 
   help|*)
     cat <<EOF
-project.sh — relay-app-mvp autopilot wrapper
+project.sh — codex-claude-relay autopilot wrapper
 
 Verbs:
   doctor          Fast env check.
-  test            dotnet build RelayApp.sln -c Release.
+  test            dotnet build CodexClaudeRelay.sln -c Release.
   audit           Outdated + churn + .cs counts.
   install-hooks   Sets core.hooksPath=.githooks; smoke-tests.
   start           Print path to RUN.txt for pasting into Claude Code.

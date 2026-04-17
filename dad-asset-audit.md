@@ -32,7 +32,7 @@ After the third operation returns, reply with exactly the word done and hand off
 ## Observed events
 
 Event-type counts from
-`%LocalAppData%\RelayAppMvp\logs\dad-asset-qa-20260417-145500.jsonl`:
+`%LocalAppData%\CodexClaudeRelayMvp\logs\dad-asset-qa-20260417-145500.jsonl`:
 
 | EventType                 | Count |
 |---------------------------|-------|

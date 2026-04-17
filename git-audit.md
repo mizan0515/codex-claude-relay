@@ -37,8 +37,8 @@ Observed result from the live app:
 
 Evidence files:
 
-- `%LocalAppData%\RelayAppMvp\auto-logs\current-status.txt`
-- `%LocalAppData%\RelayAppMvp\logs\git-audit-20260417-111226.jsonl`
+- `%LocalAppData%\CodexClaudeRelayMvp\auto-logs\current-status.txt`
+- `%LocalAppData%\CodexClaudeRelayMvp\logs\git-audit-20260417-111226.jsonl`
 
 Key per-command evidence extracted from the event log (payloads are PowerShell-wrapped):
 
@@ -56,7 +56,7 @@ Conclusion:
 
 ### 2. Direct Codex git inspection
 
-Command executed from `D:\dad-v2-system-template\prototypes\relay-app-mvp`:
+Command executed from `D:\dad-v2-system-template\prototypes\codex-claude-relay`:
 
 ```powershell
 codex exec --json --cd "D:/dad-relay-mvp-temp" "Run read-only git commands on this TaskPulse repo: (1) git -c safe.directory=* status --short --branch, (2) git -c safe.directory=* log --oneline -3, (3) git -c safe.directory=* branch --show-current, (4) git -c safe.directory=* diff --stat. Do not modify any files. After running, return exactly the word ok."
@@ -90,7 +90,7 @@ Conclusion:
 
 ## Approval Surface Assessment
 
-Policy source: `RelayApp.Core/Policy/RelayApprovalPolicy.cs`
+Policy source: `CodexClaudeRelay.Core/Policy/RelayApprovalPolicy.cs`
 
 Observed from the current policy and the live relay session:
 
@@ -199,7 +199,7 @@ Key product findings from this exercise:
 - Codex-side sandbox policy decides whether the broker sees an `approval.requested`. For `git add` and `git commit`, Codex runs them directly without asking. Only `git push` (and presumably `gh pr create`) escalates to the broker.
 - `AutoApproveAllRequests=true` did not auto-resolve the approval on this branch. The push approval enqueued and then received the default-deny path after the Codex server-side turn timed out. This is a real product gap: the auto-approve flag is not currently honoured for server-originated `item/commandExecution/requestApproval` events in the Codex interactive transport. Fix candidate: have the broker's approval handler respond with `accept` immediately when `AutoApproveAllRequests` is set, before the operator UI has had a chance to act.
 
-**Resolved in follow-up commit.** Two related defects were fixed in `RelayApp.Desktop/Interactive/CodexInteractiveAdapter.cs`:
+**Resolved in follow-up commit.** Two related defects were fixed in `CodexClaudeRelay.Desktop/Interactive/CodexInteractiveAdapter.cs`:
 
 1. Protocol decision string. `BuildServerRequestResponse` was mapping `RelayApprovalDecision.ApproveForSession` to `"acceptForSession"`, but Codex's `item/commandExecution/requestApproval` only advertises `{accept, acceptWithExecpolicyAmendment, cancel}` in its `availableDecisions`. The unknown decision value was treated as a decline, producing `exec command rejected by user` even when the relay had already auto-approved. `ApproveForSession` now maps to `accept` for command and file-change approvals (session-scope approval is still expressed via `permissions/requestApproval`'s `scope = "session"`).
 2. UI-thread race. When `AutoApproveAllRequests` was on, the adapter offloaded the whole approval decision to `HandlePendingApprovalAsync` on the UI thread, which awaited `EnqueueApprovalAsync` before returning. That gave Codex enough time (~200ms) to emit a decline before the reply reached the socket. The adapter now resolves `autoApproveAll` synchronously in `HandleServerRequestAsync`, emits `approval.requested` + `approval.auto_mode.applied` + `approval.granted` into the observed actions, and fires the queue-persist work on a background task. QA session `auto-approve-push-qa-20260417-143000` confirmed the `git push` command now actually executes under auto-approve (exit 1 returned from the push itself was an unrelated msys/sh.exe pipe-creation issue on this Windows sandbox, not an approval decline).

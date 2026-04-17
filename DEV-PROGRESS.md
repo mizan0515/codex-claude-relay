@@ -49,18 +49,18 @@
 - Baseline build only. No new runtime verification yet in this session.
 - `claude -p "Return exactly the word ok." --output-format json` returned success.
 - `codex exec --json "Return exactly the word ok."` returned `ok` with expected warnings on stderr.
-- `dotnet run --project .\RelayApp.Desktop\RelayApp.Desktop.csproj` launched successfully and was stopped after a short smoke start.
-- `dotnet run --project .\RelayApp.Desktop\RelayApp.Desktop.csproj` launched successfully again after the WPF `Latest Git / PR Activity` panel was added.
-- `dotnet run --project .\RelayApp.Desktop\RelayApp.Desktop.csproj` launched successfully again after the approval queue/history panel and broker queue wiring were added.
-- `dotnet run --project .\RelayApp.Desktop\RelayApp.Desktop.csproj` launched successfully again after unmanaged MCP/web review-item handling was added.
-- `dotnet run --project .\RelayApp.Desktop\RelayApp.Desktop.csproj` launched successfully again after active session-rule visibility UI updates.
+- `dotnet run --project .\CodexClaudeRelay.Desktop\CodexClaudeRelay.Desktop.csproj` launched successfully and was stopped after a short smoke start.
+- `dotnet run --project .\CodexClaudeRelay.Desktop\CodexClaudeRelay.Desktop.csproj` launched successfully again after the WPF `Latest Git / PR Activity` panel was added.
+- `dotnet run --project .\CodexClaudeRelay.Desktop\CodexClaudeRelay.Desktop.csproj` launched successfully again after the approval queue/history panel and broker queue wiring were added.
+- `dotnet run --project .\CodexClaudeRelay.Desktop\CodexClaudeRelay.Desktop.csproj` launched successfully again after unmanaged MCP/web review-item handling was added.
+- `dotnet run --project .\CodexClaudeRelay.Desktop\CodexClaudeRelay.Desktop.csproj` launched successfully again after active session-rule visibility UI updates.
 - `claude -p "Return exactly the word ok." --output-format json` returned success after the MCP/web review bridge changes.
 - `codex exec --json "Return exactly the word ok."` returned `ok` after the MCP/web review bridge changes.
 - `codex mcp list` / `codex mcp get unityMCP` confirmed enabled Codex MCP config.
 - `claude mcp list` / `claude mcp get UnityMCP` confirmed Claude MCP is workspace-dependent and available in `D:\Unity\card game`.
 - Real Codex MCP turn succeeded with `manage_editor` + `telemetry_ping`.
 - Real Claude MCP turn succeeded with direct `mcp__UnityMCP__manage_editor` telemetry ping and with MCP resource discovery.
-- `dotnet run --project .\RelayApp.Desktop\RelayApp.Desktop.csproj` launched successfully again after MCP default review policy tightening.
+- `dotnet run --project .\CodexClaudeRelay.Desktop\CodexClaudeRelay.Desktop.csproj` launched successfully again after MCP default review policy tightening.
 - Root maintainer validator still fails only on the pre-existing `en` variant issue: `Variant document validation failed for D:\dad-v2-system-template\en`.
 - Real WPF-driven QA succeeded for the shell audit session `shell-audit-20260417-102903`; the broker recorded `shell: completed=8, requested=8` and accepted the handoff to Claude.
 - Direct Claude shell audit against `D:\dad-relay-mvp-temp` succeeded and returned `ok` after structured Bash-based repository inspection.
@@ -74,7 +74,7 @@
 - Destructive-tier WPF-driven QA session `destructive-qa-20260417-131500` ran in INTERACTIVE mode on disposable branch `audit/destructive-20260417` of the TaskPulse workspace with `AutoApproveAllRequests=true`. Broker observed `git.add.requested`/`.completed` (exit 0), `git.commit.requested`/`.completed`, `git.push.requested` + `approval.requested` + `approval.queue.enqueued` + `git.push.completed (declined)`. `git add` and `git commit` ran inside Codex's sandbox without routing approvals to the broker; `git push` correctly escalated as `item/commandExecution/requestApproval` and was denied by timeout because `AutoApproveAllRequests` did not auto-resolve the server-originated approval.
 
 ### Next priority
-- F-impl-1: durable rolling-summary file. In `RotateSessionAsync`, before resetting per-rotation state, build a short markdown summary and write it to `%LocalAppData%\RelayAppMvp\summaries\{sessionId}-segment-{n}.md`. Emit `summary.generated` (bytes + cost) and `summary.failed` on IO error. Smallest viable F1 + F4 slice.
+- F-impl-1: durable rolling-summary file. In `RotateSessionAsync`, before resetting per-rotation state, build a short markdown summary and write it to `%LocalAppData%\CodexClaudeRelayMvp\summaries\{sessionId}-segment-{n}.md`. Emit `summary.generated` (bytes + cost) and `summary.failed` on IO error. Smallest viable F1 + F4 slice.
 - F-impl-2: add `Goal`/`Completed`/`Pending`/`Constraints`/`LastHandoffHash` carry-forward fields to `RelaySessionState`; populate `LastHandoffHash` from `HandoffParser.ComputeCanonicalHash` in `CompleteHandoffAsync`.
 - F-impl-3: extend `RelayPromptBuilder` to inject a `## Carry-forward` section into the next turn's prompt after rotation; emit `summary.loaded`.
 - F-live-1: rotation-with-summary live exercise crossing `MaxTurnsPerSession`.

@@ -44,7 +44,7 @@ explicitly marked pending.
    classifier has no case for this pattern.
    - Follow-up: extend `ClassifyCommandCategory` to match `Get-Content` /
      `cat` / `type <path>` inside already-unwrapped PowerShell payloads.
-     File: [RelayApprovalPolicy.cs](prototypes/relay-app-mvp/RelayApp.Desktop/Approvals/RelayApprovalPolicy.cs) (source not tracked in git).
+     File: [RelayApprovalPolicy.cs](prototypes/codex-claude-relay/CodexClaudeRelay.Desktop/Approvals/RelayApprovalPolicy.cs) (source not tracked in git).
 
 2. **`git add` / `git commit` don't escalate.** Codex runs them inside its
    sandbox without a broker approval round-trip on Windows. Only `git push`

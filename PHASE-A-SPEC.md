@@ -45,16 +45,16 @@ After Phase A:
 
 Relevant files:
 
-- `RelayApp.CodexProtocol/CodexProtocolConnection.cs`
-- `RelayApp.CodexProtocol/CodexProtocolTurnRunner.cs`
-- `RelayApp.Core/Broker/RelayBroker.cs`
-- `RelayApp.Core/Adapters/RelayAdapterResult.cs`
-- `RelayApp.Desktop/Interactive/CodexInteractiveAdapter.cs`
-- `RelayApp.Desktop/Interactive/ClaudeInteractiveAdapter.cs`
-- `RelayApp.Desktop/Adapters/CodexCliAdapter.cs`
-- `RelayApp.Desktop/Adapters/ClaudeCliAdapter.cs`
-- `RelayApp.Desktop/MainWindow.xaml`
-- `RelayApp.Desktop/MainWindow.xaml.cs`
+- `CodexClaudeRelay.CodexProtocol/CodexProtocolConnection.cs`
+- `CodexClaudeRelay.CodexProtocol/CodexProtocolTurnRunner.cs`
+- `CodexClaudeRelay.Core/Broker/RelayBroker.cs`
+- `CodexClaudeRelay.Core/Adapters/RelayAdapterResult.cs`
+- `CodexClaudeRelay.Desktop/Interactive/CodexInteractiveAdapter.cs`
+- `CodexClaudeRelay.Desktop/Interactive/ClaudeInteractiveAdapter.cs`
+- `CodexClaudeRelay.Desktop/Adapters/CodexCliAdapter.cs`
+- `CodexClaudeRelay.Desktop/Adapters/ClaudeCliAdapter.cs`
+- `CodexClaudeRelay.Desktop/MainWindow.xaml`
+- `CodexClaudeRelay.Desktop/MainWindow.xaml.cs`
 
 Known gaps at the start of this phase:
 

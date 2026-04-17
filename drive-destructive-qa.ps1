@@ -3,7 +3,7 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 
 $sessionId = 'auto-approve-push-qa-20260417-143000'
-$logPath = Join-Path $env:LOCALAPPDATA "RelayAppMvp\logs\$sessionId.jsonl"
+$logPath = Join-Path $env:LOCALAPPDATA "CodexClaudeRelayMvp\logs\$sessionId.jsonl"
 
 function Find-AppWindow {
     $deadline = (Get-Date).AddSeconds(60)

@@ -65,8 +65,8 @@
    - `Recent Events`
    - `Latest Tool Activity`
    - `Tool Category Summary`
-   - `%LocalAppData%\RelayAppMvp\auto-logs\current-status.txt`
-   - the latest `%LocalAppData%\RelayAppMvp\logs\*.jsonl`
+   - `%LocalAppData%\CodexClaudeRelayMvp\auto-logs\current-status.txt`
+   - the latest `%LocalAppData%\CodexClaudeRelayMvp\logs\*.jsonl`
 6. Cross-check on disk:
    - `git -C "D:\dad-relay-mvp-temp" -c safe.directory=D:/dad-relay-mvp-temp status --short --branch`
    - `git -C "D:\dad-relay-mvp-temp" -c safe.directory=D:/dad-relay-mvp-temp log --oneline -1`
@@ -92,7 +92,7 @@
    - `Recent Events`
    - `Latest Tool Activity`
    - `Latest Git / PR Activity`
-   - the latest `%LocalAppData%\RelayAppMvp\logs\*.jsonl`
+   - the latest `%LocalAppData%\CodexClaudeRelayMvp\logs\*.jsonl`
 6. Expect on Codex:
    - `shell.requested` and `shell.completed` for each git command
    - no broker approval prompt (read-only git is auto-allowed)

@@ -11,7 +11,7 @@ durable-summary or carry-forward mechanism.
 ## F1. Rolling summary
 
 **Spec**: before planned rotation, summarize relevant state and write a
-durable summary file (e.g. `%LocalAppData%\RelayAppMvp\summaries\{sessionId}-segment-{n}.md`).
+durable summary file (e.g. `%LocalAppData%\CodexClaudeRelayMvp\summaries\{sessionId}-segment-{n}.md`).
 
 **Covered**:
 - Rotation infrastructure exists in `RelayBroker.cs`:
@@ -98,7 +98,7 @@ will still feel like memory loss.
    `RotateSessionAsync`, before resetting per-rotation state, build a
    short markdown summary (latest handoff + last N observed actions +
    cumulative usage) and write it to
-   `%LocalAppData%\RelayAppMvp\summaries\{sessionId}-segment-{n}.md`.
+   `%LocalAppData%\CodexClaudeRelayMvp\summaries\{sessionId}-segment-{n}.md`.
    Emit `summary.generated` (with bytes + cost) and
    `summary.failed` on IO error. Smallest viable F1 + F4 slice.
 2. **F-impl-2: carry-forward state on RelaySessionState.** Add

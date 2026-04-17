@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This plan moves `relay-app-mvp` from a bounded handoff relay into a brokered dual-agent runtime that can safely let Claude Code CLI and Codex CLI do real work on a machine.
+This plan moves `codex-claude-relay` from a bounded handoff relay into a brokered dual-agent runtime that can safely let Claude Code CLI and Codex CLI do real work on a machine.
 
 Target outcome:
 
@@ -41,7 +41,7 @@ Implemented already:
 - budget breakers and rotation
 - experimental interactive adapters
 - protocol-backed Codex app-server transport
-- readable auto-log snapshots under `%LocalAppData%\RelayAppMvp\auto-logs`
+- readable auto-log snapshots under `%LocalAppData%\CodexClaudeRelayMvp\auto-logs`
 
 Missing for the product target:
 
@@ -122,7 +122,7 @@ Create the minimum product layer required to let the agents use the machine with
 
 Define a broker-owned policy file, for example:
 
-- `%LocalAppData%\RelayAppMvp\policy.json`
+- `%LocalAppData%\CodexClaudeRelayMvp\policy.json`
 
 Initial policy categories:
 
@@ -431,7 +431,7 @@ Before planned rotation:
 
 Possible path:
 
-- `%LocalAppData%\RelayAppMvp\summaries\{sessionId}-segment-{n}.md`
+- `%LocalAppData%\CodexClaudeRelayMvp\summaries\{sessionId}-segment-{n}.md`
 
 #### F2. Carry-forward state
 

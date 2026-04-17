@@ -1,0 +1,10 @@
+using CodexClaudeRelay.Core.Models;
+
+namespace CodexClaudeRelay.Core.Adapters;
+
+public sealed record RelayTurnContext(
+    string SessionId,
+    int TurnNumber,
+    RelaySide SourceSide,
+    string Prompt,
+    string? ExistingSessionHandle = null);

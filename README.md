@@ -1,4 +1,4 @@
-# relay-app-mvp
+# codex-claude-relay
 
 Windows desktop (WPF / .NET 8) **relay** that brokers Codex CLI sessions under an
 approval-first, DAD-aware policy. Not a chat UI or multi-agent orchestrator — a relay
@@ -15,10 +15,10 @@ active delivery target. Claude parity is explicitly **audit-only** by design —
 
 | Project | Purpose |
 |---|---|
-| `RelayApp.Core` | Broker, adapters (Codex / Claude audit), policy, pricing, persistence, protocol handoff |
-| `RelayApp.Desktop` | WPF shell, approval UI, session view, UIA-exposed controls |
-| `RelayApp.CodexProtocol` | Canonical Codex CLI protocol types + handoff parser |
-| `RelayApp.CodexProtocol.Spike` | Isolated protocol experiments; does not ship |
+| `CodexClaudeRelay.Core` | Broker, adapters (Codex / Claude audit), policy, pricing, persistence, protocol handoff |
+| `CodexClaudeRelay.Desktop` | WPF shell, approval UI, session view, UIA-exposed controls |
+| `CodexClaudeRelay.CodexProtocol` | Canonical Codex CLI protocol types + handoff parser |
+| `CodexClaudeRelay.CodexProtocol.Spike` | Isolated protocol experiments; does not ship |
 
 ## Build + run
 
@@ -27,10 +27,10 @@ active delivery target. Claude parity is explicitly **audit-only** by design —
 .\.autopilot\project.ps1 doctor
 
 # Build
-.\.autopilot\project.ps1 test            # → dotnet build RelayApp.sln -c Release
+.\.autopilot\project.ps1 test            # → dotnet build CodexClaudeRelay.sln -c Release
 
 # Launch
-.\RelayApp.Desktop\bin\Release\net8.0-windows\RelayApp.Desktop.exe
+.\CodexClaudeRelay.Desktop\bin\Release\net8.0-windows\CodexClaudeRelay.Desktop.exe
 ```
 
 ## Autopilot

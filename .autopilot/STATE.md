@@ -31,7 +31,7 @@ reference_docs:
 
 # Auto-merge refuses if the PR diff touches any of these:
 protected_paths:
-  - RelayApp.sln
+  - CodexClaudeRelay.sln
   - .autopilot/PROMPT.md
   - .autopilot/MVP-GATES.md
   - .autopilot/CLEANUP-LOG.md

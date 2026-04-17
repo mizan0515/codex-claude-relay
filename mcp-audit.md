@@ -124,8 +124,8 @@ Conclusion:
 
 Current relay code paths:
 
-- `RelayApp.Desktop/Adapters/CodexCliAdapter.cs`
-- `RelayApp.Desktop/Interactive/CodexInteractiveAdapter.cs`
+- `CodexClaudeRelay.Desktop/Adapters/CodexCliAdapter.cs`
+- `CodexClaudeRelay.Desktop/Interactive/CodexInteractiveAdapter.cs`
 
 Current behavior:
 
@@ -139,7 +139,7 @@ Status: verified in code and supported by the real CLI transcript above
 
 Current relay code path:
 
-- `RelayApp.Desktop/Interactive/ClaudeInteractiveAdapter.cs`
+- `CodexClaudeRelay.Desktop/Interactive/ClaudeInteractiveAdapter.cs`
 
 Current behavior after this audit update:
 

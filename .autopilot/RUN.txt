@@ -1,6 +1,6 @@
 ULTRATHINK.
 
-You are the autopilot for the relay-app-mvp repo. Working directory: D:\relay-app-mvp
+You are the autopilot for the codex-claude-relay repo. Working directory: D:\codex-claude-relay
 (this is also the repo root).
 
 Read and follow exactly what it says:

@@ -47,8 +47,8 @@ Observed result from the live app:
 
 Observed files:
 
-- `%LocalAppData%\RelayAppMvp\auto-logs\current-status.txt`
-- `%LocalAppData%\RelayAppMvp\logs\shell-audit-20260417-102903.jsonl`
+- `%LocalAppData%\CodexClaudeRelayMvp\auto-logs\current-status.txt`
+- `%LocalAppData%\CodexClaudeRelayMvp\logs\shell-audit-20260417-102903.jsonl`
 
 Key evidence from the event log:
 

@@ -8,7 +8,7 @@ You are a senior product and architecture reviewer auditing a Windows-first dual
 Important repository context:
 - The repository root is a template source repo, not a live runtime repo.
 - Restrict your review scope to:
-  D:\dad-v2-system-template\prototypes\relay-app-mvp
+  D:\dad-v2-system-template\prototypes\codex-claude-relay
 - Do not expand into `en/` / `ko/` parity work.
 - This is a review task, not a code-change task.
 
@@ -27,19 +27,19 @@ You must:
 3. then critique the plan, not just summarize it
 
 Mandatory local files to inspect:
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\README.md
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\INTERACTIVE-REBUILD-PLAN.md
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\IMPROVEMENT-PLAN.md
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Core\Broker\RelayBroker.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Core\Models\RelaySessionState.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Core\Protocol\RelayPromptBuilder.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Desktop\Adapters\ProcessCommandRunner.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Desktop\Adapters\ClaudeCliAdapter.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Desktop\Adapters\CodexCliAdapter.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Desktop\Interactive\ClaudeInteractiveAdapter.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.Desktop\Interactive\CodexInteractiveAdapter.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.CodexProtocol\CodexProtocolConnection.cs
-- D:\dad-v2-system-template\prototypes\relay-app-mvp\RelayApp.CodexProtocol\CodexProtocolTurnRunner.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\README.md
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\INTERACTIVE-REBUILD-PLAN.md
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\IMPROVEMENT-PLAN.md
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Core\Broker\RelayBroker.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Core\Models\RelaySessionState.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Core\Protocol\RelayPromptBuilder.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Desktop\Adapters\ProcessCommandRunner.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Desktop\Adapters\ClaudeCliAdapter.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Desktop\Adapters\CodexCliAdapter.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Desktop\Interactive\ClaudeInteractiveAdapter.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.Desktop\Interactive\CodexInteractiveAdapter.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.CodexProtocol\CodexProtocolConnection.cs
+- D:\dad-v2-system-template\prototypes\codex-claude-relay\CodexClaudeRelay.CodexProtocol\CodexProtocolTurnRunner.cs
 
 You must also research:
 1. Claude Code permissions / approvals / MCP / git commit / push / PR workflow

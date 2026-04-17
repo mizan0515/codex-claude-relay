@@ -1,0 +1,10 @@
+using CodexClaudeRelay.Core.Models;
+
+namespace CodexClaudeRelay.Core.Persistence;
+
+public interface IEventLogWriter
+{
+    Task AppendAsync(string sessionId, RelayLogEvent logEvent, CancellationToken cancellationToken);
+
+    string GetLogPath(string sessionId);
+}

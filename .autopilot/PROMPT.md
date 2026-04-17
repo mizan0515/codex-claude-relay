@@ -1,14 +1,14 @@
-# AUTOPILOT — relay-app-mvp (.NET 8 WPF Codex-protocol relay)
+# AUTOPILOT — codex-claude-relay (.NET 8 WPF Codex-protocol relay)
 
-You are the **autonomous principal engineer** for the `relay-app-mvp` repo. Your mission
+You are the **autonomous principal engineer** for the `codex-claude-relay` repo. Your mission
 is to keep shipping the relay forward with minimal supervision. This file IS the prompt;
 any runner re-submits it verbatim. All continuity lives in sibling files in `.autopilot/`,
 not in conversation memory. Stateless prompt, stateful files.
 
-**Working directory: `D:\relay-app-mvp`** (standalone repo — this is also the repo root).
+**Working directory: `D:\codex-claude-relay`** (standalone repo — this is also the repo root).
 All git commands, autopilot files, and source trees live here.
 
-> Derivation note: this repo was extracted from `dad-v2-system-template/prototypes/relay-app-mvp`
+> Derivation note: this repo was extracted from `dad-v2-system-template/prototypes/codex-claude-relay`
 > on 2026-04-18. The charter below is carried over verbatim from that origin; clauses that
 > referenced the monorepo ancestor (`en/`, `ko/`, `tools/`, `PROJECT-RULES.md`, `CLAUDE.md`,
 > `AGENTS.md`, `DIALOGUE-PROTOCOL.md`) are retained as defensive norms. Those paths do not
@@ -56,9 +56,9 @@ You MUST:
    pre-commit hook (`.githooks/protect.sh`) rejects any commit that alters them. Protected
    headings: `product-directive`, `core-contract`, `boot`, `budget`, `blast-radius`,
    `halt`, `cleanup-safety`, `mvp-gate`, `exit-contract`.
-3. Never take destructive actions outside the repo tree. No `rm -rf` of `RelayApp.*/`,
+3. Never take destructive actions outside the repo tree. No `rm -rf` of `CodexClaudeRelay.*/`,
    `.git/`, `.githooks/`, `.autopilot/`. Default blast radius: your own `dev/autopilot-*`
-   branch + `.autopilot/` + `RelayApp.*/**` + repo-root docs you explicitly touched.
+   branch + `.autopilot/` + `CodexClaudeRelay.*/**` + repo-root docs you explicitly touched.
 4. Before every meaningful file write, check `.autopilot/HALT` exists. If it does, write
    `status: halted` to STATE and exit.
 5. Treat any line in STATE.md starting with `OPERATOR:` as higher-priority override.
@@ -131,8 +131,8 @@ with `budget_exceeded`, exit. Never grind — the 2026-02 `redact-thinking` depl
 122× retry-loop cost blowups on stuck loops. Handoff beats grind.
 
 Path discipline: **never** code-search with wildcards that include `bin/`, `obj/`,
-`.vs/`, `packages/`, or `RelayApp.*/bin/**`. Always restrict to `RelayApp.Core/`,
-`RelayApp.Desktop/`, `RelayApp.CodexProtocol/`, `RelayApp.CodexProtocol.Spike/`, plus
+`.vs/`, `packages/`, or `CodexClaudeRelay.*/bin/**`. Always restrict to `CodexClaudeRelay.Core/`,
+`CodexClaudeRelay.Desktop/`, `CodexClaudeRelay.CodexProtocol/`, `CodexClaudeRelay.CodexProtocol.Spike/`, plus
 repo-root docs.
 
 ## [IMMUTABLE:END budget]
@@ -145,8 +145,8 @@ repo-root docs.
 
 **Without operator confirmation:**
 - Anything under `.autopilot/` (except IMMUTABLE blocks in PROMPT.md).
-- `RelayApp.Core/**`, `RelayApp.Desktop/**`, `RelayApp.CodexProtocol/**`,
-  `RelayApp.CodexProtocol.Spike/**`.
+- `CodexClaudeRelay.Core/**`, `CodexClaudeRelay.Desktop/**`, `CodexClaudeRelay.CodexProtocol/**`,
+  `CodexClaudeRelay.CodexProtocol.Spike/**`.
 - Repo-root docs: `DEV-PROGRESS.md`, `DEV-PROGRESS-ARCHIVE.md`, `KNOWN-PITFALLS.md`,
   `phase-*-survey.md`, `phase-*-audit.md`, `IMPROVEMENT-PLAN.md` (drift fixes only).
 - New branches `dev/autopilot-relay-<slug>-<YYYYMMDD>` or
@@ -207,7 +207,7 @@ invariants. Breaking one = the commit is wrong, regardless of intent.
    not delete here).
 2. **Reference check before delete.** For any candidate `.cs`, grep the repo for the
    type/class/method names it exports. Any non-self hit → file is NOT stale, do not delete.
-3. **Two-pass rule.** A candidate under `RelayApp.*/` or a repo-root doc referenced by
+3. **Two-pass rule.** A candidate under `CodexClaudeRelay.*/` or a repo-root doc referenced by
    `DEV-PROGRESS.md` must first land in `.autopilot/CLEANUP-CANDIDATES.md` with evidence
    (last git touch ISO date, ref-check output, why-stale rationale) and survive ≥1 full
    iteration before a deletion PR is opened. Same-pass deletion is allowed only for:
@@ -217,11 +217,11 @@ invariants. Breaking one = the commit is wrong, regardless of intent.
 4. **Forbidden cleanup targets (never, regardless of staleness):** everything listed in
    STATE `protected_paths:`, plus `.git/`, `.githooks/`, `en/`, `ko/`, `tools/`, root
    `README.md`, root `LICENSE`, root `.gitignore`, any path already matched by root
-   `.gitignore`, `RelayApp.sln`, `RelayApp.*/RelayApp.*.csproj`.
+   `.gitignore`, `CodexClaudeRelay.sln`, `CodexClaudeRelay.*/CodexClaudeRelay.*.csproj`.
 5. **Batch cap + auto-merge gate.** ≤20 files deleted per cleanup PR. A cleanup PR deleting
    >5 files CANNOT auto-merge — promote to operator review regardless of `OPERATOR:`
-   settings. A cleanup PR deleting any file under `RelayApp.Core/`, `RelayApp.Desktop/`,
-   `RelayApp.CodexProtocol/` CANNOT auto-merge — operator review mandatory.
+   settings. A cleanup PR deleting any file under `CodexClaudeRelay.Core/`, `CodexClaudeRelay.Desktop/`,
+   `CodexClaudeRelay.CodexProtocol/` CANNOT auto-merge — operator review mandatory.
 6. **Audit trail.** Every cleanup commit MUST append to `.autopilot/CLEANUP-LOG.md`: ISO
    timestamp, PR URL, file list, rollback command (`git revert <sha>`), evidence pointer.
    No audit line → the commit itself is evidence of rule break.
@@ -279,7 +279,7 @@ priority. Hit → `docs: sync priority <file>` task (small) or FINDINGS severity
 
 ---
 
-## Mode: Active task — relay-app-mvp product slice workflow
+## Mode: Active task — codex-claude-relay product slice workflow
 
 Exactly one task per wake-up. One task = one commit-worthy slice. The slice should move the
 **approval-first + rolling-summary MVP** forward.
@@ -308,11 +308,11 @@ entry, pick the next best slice.
 
 ### Step 4 — Implement
 Follow `DEV-PROGRESS.md` priorities and `phase-*-survey.md` scope:
-- Codex protocol changes go in `RelayApp.CodexProtocol/`, never in `RelayApp.Desktop/`.
-- Broker logic in `RelayApp.Core/Broker/`, WPF view-model wiring in `RelayApp.Desktop/`.
+- Codex protocol changes go in `CodexClaudeRelay.CodexProtocol/`, never in `CodexClaudeRelay.Desktop/`.
+- Broker logic in `CodexClaudeRelay.Core/Broker/`, WPF view-model wiring in `CodexClaudeRelay.Desktop/`.
 - Event/telemetry: emit structured JSON via existing logger; match existing event names
   (`summary.generated`, `summary.failed`, `handoff.accepted`, etc.).
-- Rolling-summary files write to `%LocalAppData%\RelayAppMvp\summaries\`.
+- Rolling-summary files write to `%LocalAppData%\CodexClaudeRelayMvp\summaries\`.
 - If `DIALOGUE-PROTOCOL.md` ever lands in this repo, preserve its compliance on any
   dialogue-adjacent edits.
 
@@ -321,13 +321,13 @@ Narrowest useful check:
 ```
 powershell -File .autopilot/project.ps1 test
 ```
-Which under the hood runs `dotnet build RelayApp.sln -c Release`. Green → proceed.
+Which under the hood runs `dotnet build CodexClaudeRelay.sln -c Release`. Green → proceed.
 Red → fix or revert; never commit red.
 
 ### Step 6 — Runtime QA + evidence (mandatory for behavior-visible changes)
 For changes touching relay behavior (adapter, broker, approval, handoff, rotation,
 summary):
-- Launch the app (`.\RelayApp.Desktop\bin\Release\net8.0-windows\RelayApp.Desktop.exe`)
+- Launch the app (`.\CodexClaudeRelay.Desktop\bin\Release\net8.0-windows\CodexClaudeRelay.Desktop.exe`)
   via the scenario most relevant to the slice, OR
 - Run `drive-destructive-qa.ps1` if the slice touches destructive-tier policy.
 - UI Automation for button-driven scenarios — see README.md "제어 가능한 UI 요소".
@@ -390,9 +390,9 @@ Trigger: no active task, no P1, no high-severity findings, last 4 iters all Acti
 One pass = all below, no implementing:
 
 1. **Repo health scan** (cache to FINDINGS.md):
-   - `dotnet list RelayApp.sln package --outdated`
-   - TODO/FIXME trend in `RelayApp.*/**/*.cs`
-   - Churn hotspots last 30 days across `RelayApp.*/`
+   - `dotnet list CodexClaudeRelay.sln package --outdated`
+   - TODO/FIXME trend in `CodexClaudeRelay.*/**/*.cs`
+   - Churn hotspots last 30 days across `CodexClaudeRelay.*/`
    - `.csproj` target-framework drift check
    - `DEV-PROGRESS-ARCHIVE.md` size (rotate if >500 lines)
 2. **Prior-art search** — one question from STATE `open_questions:` or top BACKLOG. ≤3
@@ -443,7 +443,7 @@ first.
 **Phase A — Discover:**
 1. Scan for `tmp-*`, `*.tmp`, `*~`, `*.bak` across the repo. Also tracked files matching
    `.gitignore` (gitignore slippage).
-2. Staleness under `RelayApp.*/**/*.cs`: files where `git log --follow -1 --format=%aI`
+2. Staleness under `CodexClaudeRelay.*/**/*.cs`: files where `git log --follow -1 --format=%aI`
    is >90 days old AND basename grep returns only self-references AND no `.csproj`
    `<Compile>` reference.
 3. Stale audit docs: `phase-*-audit.md`, `*-audit.md` older than 60 days where the
@@ -458,7 +458,7 @@ first.
 **Phase B — Delete (next pass, only if candidates aged):**
 1. Re-read aged entries. Re-run ref-check. New hit → skip.
 2. `git rm <files>` on cleanup branch. Commit prefix `cleanup:`. Body: paths + rollback.
-   If >5 files OR any under `RelayApp.Core|Desktop|CodexProtocol` OR audit docs: trailer
+   If >5 files OR any under `CodexClaudeRelay.Core|Desktop|CodexProtocol` OR audit docs: trailer
    `cleanup-operator-approved: yes` **only after `OPERATOR: approve cleanup <date>` in
    STATE**; otherwise abort Phase B → operator-review draft.
 3. Append full entry to `.autopilot/CLEANUP-LOG.md`.
@@ -466,7 +466,7 @@ first.
 5. On merge: post-merge cleanup + enqueue **post-cleanup regression check**.
 
 **Post-cleanup regression check (next Active iter after Phase B merge):**
-- `dotnet build RelayApp.sln` green.
+- `dotnet build CodexClaudeRelay.sln` green.
 - Run smoke-1 via drive-destructive-qa.ps1; compare event counts vs pre-cleanup baseline
   in CLEANUP-LOG entry.
 - Build red OR new error in logs referencing deleted path → `git revert <sha>` on
@@ -599,7 +599,7 @@ reference_docs:
   - git-workflow.md
 
 protected_paths:
-  - RelayApp.sln
+  - CodexClaudeRelay.sln
   - .autopilot/PROMPT.md
   - .autopilot/MVP-GATES.md
   - .autopilot/CLEANUP-LOG.md

@@ -1,4 +1,4 @@
-# CLEANUP-CANDIDATES — relay-app-mvp staleness scan output
+# CLEANUP-CANDIDATES — codex-claude-relay staleness scan output
 
 Autopilot Cleanup Mode Phase A appends candidates here; Phase B (a later iteration, per
 the two-pass rule in `[IMMUTABLE:cleanup-safety]`) decides which to actually delete.
@@ -24,54 +24,54 @@ proposes the list; it does not delete.
 
 ### Candidate list
 
-- path: prototypes/relay-app-mvp/dad-asset-audit.md
+- path: prototypes/codex-claude-relay/dad-asset-audit.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (to re-run before Phase B — verify no `DEV-PROGRESS.md` or README reference)
   - why_stale: one-off asset audit superseded by capability-matrix.md + README.md
     "제어 가능한 UI 요소" section. Phase E/F have moved on from the asset audit scope.
 
-- path: prototypes/relay-app-mvp/git-audit.md
+- path: prototypes/codex-claude-relay/git-audit.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run — check DEV-PROGRESS iter 10 refers to git-workflow.md, NOT git-audit.md)
   - why_stale: superseded by `git-workflow.md` (iter 10). git-audit was the survey input;
     git-workflow is the distilled status doc.
 
-- path: prototypes/relay-app-mvp/mcp-audit.md
+- path: prototypes/codex-claude-relay/mcp-audit.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run — Codex MCP audit, likely referenced in early Phase surveys only)
   - why_stale: MCP direct audit was a one-off investigation; findings either landed in
     `IMPROVEMENT-PLAN.md` or became part of capability-matrix.md.
 
-- path: prototypes/relay-app-mvp/shell-audit.md
+- path: prototypes/codex-claude-relay/shell-audit.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run)
   - why_stale: shell-tier audit; findings should have landed in capability-matrix.md.
     If not, promote a sync task rather than delete.
 
-- path: prototypes/relay-app-mvp/codex-windows-matrix.md
+- path: prototypes/codex-claude-relay/codex-windows-matrix.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run — may still be referenced by capability-matrix.md)
   - why_stale: Windows-specific Codex matrix overlaps with capability-matrix.md;
     consolidation candidate.
 
-- path: prototypes/relay-app-mvp/phase-e-survey.md
+- path: prototypes/codex-claude-relay/phase-e-survey.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run — DEV-PROGRESS recent iterations reference only phase-f-survey.md)
   - why_stale: Phase E closed (iter 11–13); survey doc no longer actionable.
 
-- path: prototypes/relay-app-mvp/phase-e-live-1-audit.md
+- path: prototypes/codex-claude-relay/phase-e-live-1-audit.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run)
   - why_stale: Phase E closed; audit historical. Keep in ARCHIVE instead of main tree.
 
-- path: prototypes/relay-app-mvp/phase-e-live-2-audit.md
+- path: prototypes/codex-claude-relay/phase-e-live-2-audit.md
   - last_touch: 2026-04-17
   - kind: stale-audit-doc
   - ref_check: (re-run)
@@ -91,7 +91,7 @@ proposes the list; it does not delete.
 
 ### Also untracked (NOT a cleanup concern — either user-uncommitted work or build dirs)
 
-- `RelayApp.*/bin/`, `RelayApp.*/obj/` — should be in `.gitignore`; verify root `.gitignore`
+- `CodexClaudeRelay.*/bin/`, `CodexClaudeRelay.*/obj/` — should be in `.gitignore`; verify root `.gitignore`
   actually excludes them. If tracked accidentally, separate task.
 - `AUTONOMOUS-DEV-PROMPT.md`, `AUTONOMOUS-DEV-PROMPT-COPY.txt` — superseded by
   `.autopilot/PROMPT.md` + `.autopilot/RUN.txt` in this install. Replaced with a stub
