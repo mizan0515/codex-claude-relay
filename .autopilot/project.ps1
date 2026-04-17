@@ -103,6 +103,15 @@ switch ($Verb) {
       Write-Warning "sentinel older than METRICS ($newest UTC < $metricsMtime UTC) — reschedule-miss suspected"
       exit 2
     }
+    # Stronger check: LAST_RESCHEDULE must carry the tool response on line 2
+    # (exit-contract Step 6). A single-line file is narration-only, not proof.
+    if (Test-Path $last) {
+      $lines = @(Get-Content $last -ErrorAction SilentlyContinue)
+      if ($lines.Count -lt 2 -or -not ($lines[1].Trim())) {
+        Write-Warning "LAST_RESCHEDULE missing tool-response line — sentinel forgery suspected (timestamp-only)"
+        exit 2
+      }
+    }
     Write-Host "ok (newest sentinel: $newest UTC, METRICS tail: $metricsMtime UTC)"
   }
 

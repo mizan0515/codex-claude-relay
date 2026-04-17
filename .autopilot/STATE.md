@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 6
-status: active-complete
+iteration: 7
+status: evolution-complete
 active_task: null
-# Last completed: F-impl-3b carry-forward population — CompleteHandoffAsync now sets State.Goal from handoff.Reason and State.Pending from handoff.Summary (filtered non-blank); Completed + Constraints still default empty (no envelope source). Gate G7 population leg partial. Next: BACKLOG P1 [F-impl-3c] extend HandoffEnvelope with completed/constraints JSON fields + parser/serializer update, or jump to F-live-1 if operator prefers live validation of the current partial path.
+# Last completed: prompt-evolution — [IMMUTABLE:exit-contract] now enumerates ScheduleWakeup (Step 5) + proof-of-call sentinel (Step 6, 2-line: ts + raw tool response). check-reschedule rejects 1-line sentinels as forgery. Drove by iter 6 reschedule-miss repeat (operator-authorized 2026-04-18 "보강하고 막힌거 풀어"). Probation: baseline iters 2-6, end iter 9. Next: resume F-impl-3c (BACKLOG P1) or F-live-1 per operator preference.
 # active_task schema:
 #   slug: <kebab-case>
 #   plan: [bullet, bullet]

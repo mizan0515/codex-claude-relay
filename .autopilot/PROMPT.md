@@ -537,6 +537,28 @@ Before exit, in order:
 
 ## [IMMUTABLE:END exit-contract]
 
+> **Exit-path enumeration overlay** (mutable; extends the block above per
+> `[IMMUTABLE:wake-reschedule]`). Between Step 4 and Step 5, unless a halt
+> status applies, the agent MUST perform in order:
+>
+> - **4a. Call `ScheduleWakeup`** — `delaySeconds` = the integer just written
+>   to `.autopilot/NEXT_DELAY`; `prompt` = RUN.txt body verbatim;
+>   `reason` = one short sentence. Declaring "rescheduled" in a summary is
+>   NOT a substitute for the tool call.
+> - **4b. Write proof-of-call sentinel** `.autopilot/LAST_RESCHEDULE` only
+>   AFTER observing a successful `ScheduleWakeup` response. Content =
+>   2 lines: ISO-8601 UTC timestamp with trailing `Z`, then the raw tool
+>   response truncated to 500 chars. If the tool errored, do NOT write the
+>   sentinel — surface the error so the next boot watchdog catches it.
+>
+> Halt path (one of `halted` / `mvp-complete` / `stagnation on <gate>` /
+> `env-broken` / `probation-revert`, or `.autopilot/HALT` present): skip 4a/4b
+> and write `.autopilot/LAST_HALT_NOTE` instead (timestamp + one-line reason).
+>
+> Rationale: this overlay is mutable so future operator tuning cannot be
+> self-evolved away; the IMMUTABLE wake-reschedule watchdog above is the
+> invariant that gives it teeth (iter 0 and iter 6 reschedule-miss).
+
 ---
 
 ## [IMMUTABLE:BEGIN wake-reschedule]
@@ -551,10 +573,12 @@ below. These two MUST stay in lockstep or the loop silently halts (observed
 
 Mandatory invariants:
 
-1. **Sentinel write.** Immediately AFTER `ScheduleWakeup` returns, write the
-   current ISO-8601 UTC timestamp (trailing `Z`) to `.autopilot/LAST_RESCHEDULE`.
-   Write this file under NO other condition — it is the proof-of-tool-call,
-   not a log line.
+1. **Sentinel write.** Immediately AFTER observing a successful
+   `ScheduleWakeup` tool response, write `.autopilot/LAST_RESCHEDULE` as two
+   lines: the current ISO-8601 UTC timestamp (trailing `Z`), then the raw
+   tool response (truncate to 500 chars). The response line is what makes
+   this proof-of-tool-call rather than a log line — a timestamp alone can be
+   forged by narration. Write under NO other condition.
 2. **Halt suppression.** When omitting `ScheduleWakeup` because of a halt
    status (`halted` / `mvp-complete` / `stagnation on <gate>` / `env-broken` /
    `probation-revert` / `.autopilot/HALT` present), write the ISO timestamp
