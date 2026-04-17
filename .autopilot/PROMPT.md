@@ -505,14 +505,23 @@ are rejected unconditionally.**
 
 ## Pacing (NEXT_DELAY)
 
-- Active mid-task waiting (build finishing): **270**
-- Active just completed: **900**
-- Idle-upkeep done: **1800**
-- Brainstorm done: **1800**
-- Env broken: **1800**
-- Halted / probation-revert: **3600**
+Operator directive 2026-04-18: back-to-back iteration on productive paths —
+use the 60 s floor (the `ScheduleWakeup` / core-contract L67 minimum) so work
+continues immediately when there is more to do. Keep long delays only on
+safety-pause paths (env broken, halted) where spinning is harmful.
 
-Avoid 300–900s when expecting large context re-read on wake (prompt cache ~5 min TTL).
+- Active mid-task waiting (build finishing): **60**
+- Active just completed: **60**
+- Idle-upkeep done: **60**
+- Brainstorm done: **60**
+- Env broken: **1800**   (don't spin on broken env)
+- Halted / probation-revert: **3600**   (hard stop; operator must resume)
+
+60 s keeps the prompt cache warm (TTL ~5 min) so consecutive iterations
+re-read STATE/BACKLOG from cache. Avoid 300–900 s — that is the worst-of-both
+window (cache miss without amortization). If a task needs a longer idle
+(e.g. waiting on an external PR check), raise the value for that specific
+iter by writing it to NEXT_DELAY directly, not by changing this table.
 
 ---
 
