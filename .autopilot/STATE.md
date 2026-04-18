@@ -2,12 +2,12 @@
 
 root: .
 base: main
-iteration: 53
+iteration: 54
 status: active
-idle_upkeep_streak: 4
-next_iter_unblock_plan: iter54 — MVP 7/8 유지. iter53 에 B13 히스토그램+flip 연표 착륙. iter54 후보 — (a) B11 EventHashStamper 순수 리팩터(RelayBroker.cs 55 호출부, non-protected, 테스트 포함) / (b) B15 flip-history digest(MVP-GATES.md protected → PR 필수) / (c) idle-upkeep 5회 streak 시 PROMPT 규칙대로 status:halted + LAST_HALT_NOTE 검토. 운영자 결정(G1 3건 + B14 A/B/C) 도착 시 즉시 해당 경로.
-backlog: .autopilot/BACKLOG.md (iter50 재작성: B2·B4·B5·B6·B7·B9 Completed · active=B1·B3·B10·B8 · 신규 brainstorm B11~B15)
-open_autopilot_prs: []
+idle_upkeep_streak: 0  # iter54에 실제 PR 생성(#51) → idle-upkeep 종료, 리뷰 대기 전환
+next_iter_unblock_plan: iter55 — PR #51(B15) 폴링 · protected_paths(MVP-GATES.md) 라 관리자 한국어 리뷰 필수. 운영자 승인 도착 시 머지 확정 · 미도착 시 idle-upkeep 재개. 부속으로 B11 CLOSED(iter48 writer 중앙화로 이미 consolidation 완료).
+backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B14 DONE · B11 CLOSED · B15 IN-REVIEW · active=B1·B3·B10·B8)
+open_autopilot_prs: [51]
 merged_since_last_iter: [50, 61a55a4]
 mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
 
