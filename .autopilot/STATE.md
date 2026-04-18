@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 54
+iteration: 55
 status: active
-idle_upkeep_streak: 0  # iter54에 실제 PR 생성(#51) → idle-upkeep 종료, 리뷰 대기 전환
-next_iter_unblock_plan: iter55 — PR #51(B15) 폴링 · protected_paths(MVP-GATES.md) 라 관리자 한국어 리뷰 필수. 운영자 승인 도착 시 머지 확정 · 미도착 시 idle-upkeep 재개. 부속으로 B11 CLOSED(iter48 writer 중앙화로 이미 consolidation 완료).
+idle_upkeep_streak: 0  # PR #51 리뷰 대기 — 실제 차단이라 idle-upkeep 카운트 아님
+next_iter_unblock_plan: iter56 — PR #51(B15) 폴링 2회째 예정. reviewDecision 빈 값 · mergeStateStatus UNKNOWN · protected_paths 라 관리자 한국어 리뷰 필수. 운영자 지시 없이 자동 머지 불가. 폴링 3회 초과 시 PROMPT 규칙대로 idle-upkeep 모드 전환 혹은 halt-soft 검토.
 backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B14 DONE · B11 CLOSED · B15 IN-REVIEW · active=B1·B3·B10·B8)
 open_autopilot_prs: [51]
 merged_since_last_iter: [50, 61a55a4]
