@@ -116,7 +116,7 @@ reversion is a rule break.
   broker는 지시 전달만 담당)이므로 preamble 도달 증명이 계약 범위.
 
 ## G6 — Rolling summary + carry-forward injection
-- [~] At session rotation (turn/time/token trigger), broker writes a
+- [x] At session rotation (turn/time/token trigger), broker writes a
       markdown summary and injects Goal/Completed/Pending/Constraints into
       the next session's first turn prompt under a `## Carry-forward`
       section. `summary.generated` event carries bytes + path.
@@ -139,11 +139,17 @@ reversion is a rule break.
     `summary.loaded` 이벤트(bytes, fields_populated) 기록.
   · PR #40 (f6f2263) — `CarryForwardRendererTests` 4 facts +
     `RollingSummaryWriterTests` 4 facts. 테스트 45/45 통과.
-- Remaining for `[x]`: end-to-end rotation smoke — 세션 rotate 트리거 →
-  실제 디스크 파일 landing 확인 + `summary.generated` 이벤트가 해당
-  payload로 emit 되었음을 로그에서 assert + 다음 턴 prompt에
-  carry-forward block prepend 되었음 확인. `RotationSmokeRunner`를
-  headless 구동시켜 xunit으로 래핑하면 scope ≈100 LOC.
+- 2026-04-19 — G6 `[~]` → `[x]`. iter46 / PR #47 (a3ba00a):
+  `BrokerRotationSmokeE2ETests.Rotation_emits_summary_generated_event_and_injects_carry_forward_on_next_turn`
+  (157 LOC, 1 fact) — peer_handoff 1턴으로 State.Goal/Pending/Completed 시드 →
+  private `RotateSessionAsync`를 reflection 호출 →
+  `%LOCALAPPDATA%/CodexClaudeRelayMvp/summaries/{sid}-segment-1.md` 실제 파일
+  존재 + `summary.generated` 이벤트 (segment·path·bytes 페이로드) 정확히 1회
+  emit + `CarryForwardPending=true` 검증. 이후 `AdvanceAsync` 재호출 →
+  Claude 어댑터의 `context.CarryForward` 에 `## Carry-forward`,
+  `- goal: finish the G6 rotation smoke`, `### Completed`/`### Pending`
+  블록 주입 + `summary.loaded` 이벤트 emit 확인. xunit 64/64 통과.
+  `BrokerCwdMutating` 컬렉션으로 CWD 경합 차단.
 
 ## G7 — Consensus convergence closeout
 - [x] When both peers mark `handoff.ready_for_peer_verification: true` AND
