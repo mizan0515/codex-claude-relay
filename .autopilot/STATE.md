@@ -2,13 +2,13 @@
 
 root: .
 base: main
-iteration: 91
-status: idle-upkeep
-idle_upkeep_streak: 24  # iter91: R-REVIEW 지속, streak 24
-next_iter_unblock_plan: iter92 — 폴링 지속. 승인 시 즉시 머지 → G1 [x] flip → MVP 8/8.
+iteration: 92
+status: review-wait  # PR #53 머지됨 (iter92) — streak 리셋, PR #57 만 대기
+idle_upkeep_streak: 0  # iter92: 관리자가 PR #53 머지 → streak 리셋
+next_iter_unblock_plan: iter93 — PR #57 만 대기. 승인 시 즉시 머지 → G1 [x] flip → MVP 8/8.
 backlog: .autopilot/BACKLOG.md (B1·B2·B3·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B8 blocked)
-open_autopilot_prs: [53, 57]
-merged_since_last_iter: []
+open_autopilot_prs: [57]
+merged_since_last_iter: [53]  # iter92: PR #53 (validator) 관리자 머지 완료
 mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
