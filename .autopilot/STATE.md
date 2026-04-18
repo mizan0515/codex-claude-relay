@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 55
+iteration: 56
 status: active
-idle_upkeep_streak: 0  # PR #51 리뷰 대기 — 실제 차단이라 idle-upkeep 카운트 아님
-next_iter_unblock_plan: iter56 — PR #51(B15) 폴링 2회째 예정. reviewDecision 빈 값 · mergeStateStatus UNKNOWN · protected_paths 라 관리자 한국어 리뷰 필수. 운영자 지시 없이 자동 머지 불가. 폴링 3회 초과 시 PROMPT 규칙대로 idle-upkeep 모드 전환 혹은 halt-soft 검토.
+idle_upkeep_streak: 0  # PR #51 리뷰 대기 (폴링 2회) — 차단 사유 명확하므로 halt 아님
+next_iter_unblock_plan: iter57 — PR #51(B15) 폴링 3회째. 여전히 reviewDecision 빈 값 · mergeStateStatus UNKNOWN · comments 비어있음. 리뷰 대기는 차단 사유 명확하므로 PROMPT halt 규칙 대상 아님(blocked-on-operator ≠ ambiguous-drift). iter57 에서도 변화 없으면 idle-upkeep 재개하여 B11/B13 follow-up 등 작은 개선 지속.
 backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B14 DONE · B11 CLOSED · B15 IN-REVIEW · active=B1·B3·B10·B8)
 open_autopilot_prs: [51]
 merged_since_last_iter: [50, 61a55a4]
