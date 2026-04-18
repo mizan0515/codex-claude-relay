@@ -126,12 +126,34 @@ reversion is a rule break.
   headless 구동시켜 xunit으로 래핑하면 scope ≈100 LOC.
 
 ## G7 — Consensus convergence closeout
-- [ ] When both peers mark `handoff.ready_for_peer_verification: true` AND
+- [~] When both peers mark `handoff.ready_for_peer_verification: true` AND
       `handoff.suggest_done: true` in consecutive turns with matching
       `checkpoint_results`, the broker seals the session as `converged` in
       state.json and links it in `Document/dialogue/backlog.json`.
 - Evidence: state.json showing `session_status: converged` + backlog entry
   with `closed_by_session_id` filled.
+- 2026-04-18 — G7 `[ ]` → `[~]`. Evidence stack:
+  · PR #41 (32ee1f0) — `ConvergenceDetector.Evaluate` 순수 함수 + 7 facts
+    (정상 합의, 피어 순서 불변성, null 이전 턴, recovery_resume 거부,
+    같은 피어 연속 거부, 체크포인트 상태 불일치 거부, suggest_done 미세팅 거부).
+    `RelaySessionStatus.Converged` enum 값 추가.
+  · PR #42 (b602980) — `BacklogClosureWriter` 순수 render + atomic
+    WriteAsync + LoadAsync + UpsertClosure (5 facts).
+  · PR #43 (6461d7c) — `RelayBroker.CompleteHandoffAsync` 배선:
+    진입부에서 `priorHandoff = State.LastHandoff` 캡처 → 상태 업데이트
+    후 `ConvergenceDetector.Evaluate` 호출 → 합의 성립 시 `State.Status
+    = Converged` + `session.converged` 이벤트 + `WriteBacklogClosureAsync`
+    (Document/dialogue/backlog.json에 upsert + `backlog.closure_written`
+    이벤트, 실패 시 `backlog.closure_failed`). recovery_resume 턴은
+    detector 레벨 + 브로커 레벨 이중 가드로 합의 판정 제외.
+  · Test suite: 57/57 통과 on main.
+- Remaining for `[x]`: 브로커-레벨 e2e 스모크 — fake `IRelayAdapter` 쌍이
+  연속된 두 턴에서 convergent handoff(양쪽 ready_for_peer_verification +
+  suggest_done + 일치하는 checkpoint_results)를 반환하도록 세팅 → broker
+  Advance 사이클 후 `State.Status=Converged` + backlog.json 실물 파일에
+  `session_status: converged`/`closed_by_session_id` 채워짐 + 이벤트 로그에
+  `session.converged` + `backlog.closure_written` 모두 존재함을 assert.
+  Scope ≈150 LOC. 다음 iter42에서 수행.
 
 ## G8 — Audit log integrity
 - [ ] Every turn packet I/O, handoff artifact write, and state transition
