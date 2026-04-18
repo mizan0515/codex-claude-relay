@@ -6,7 +6,7 @@ using CodexClaudeRelay.Core.Protocol;
 
 namespace CodexClaudeRelay.Core.Broker;
 
-public sealed class RelayBroker
+public sealed class RelayBroker : IBrokerCostContext
 {
     private const long SuspiciousClaudeCacheCreationTokens = 15_000;
 
@@ -15,6 +15,15 @@ public sealed class RelayBroker
     private readonly IRelaySessionStore _sessionStore;
     private readonly IEventLogWriter _eventLogWriter;
     private readonly RelayBrokerOptions _options;
+    private readonly AgentCostAdvisorRegistry _costAdvisors =
+        new(new CodexCostAdvisor(), new ClaudeCostAdvisor());
+
+    // IBrokerCostContext explicit implementation — narrow seam handed to
+    // per-role advisors (see Policy/IAgentCostAdvisor.cs). State is already
+    // public; PersistAndLogAsync stays private to everyone else.
+    RelaySessionState IBrokerCostContext.State => State;
+    Task IBrokerCostContext.PersistAndLogAsync(RelayLogEvent logEvent, CancellationToken cancellationToken)
+        => PersistAndLogAsync(logEvent, cancellationToken);
 
     public RelayBroker(
         IEnumerable<IRelayAdapter> adapters,
@@ -1277,8 +1286,7 @@ public sealed class RelayBroker
             new RelayLogEvent(DateTimeOffset.Now, "adapter.usage", role, summary, usage.RawJson),
             cancellationToken);
 
-        await LogCodexPricingFallbackAsync(role, effectiveUsage, cancellationToken);
-        await LogCodexRateCardStaleAsync(role, cancellationToken);
+        await _costAdvisors.For(role).OnUsageObservedAsync(this, effectiveUsage, cancellationToken).ConfigureAwait(false);
         await LogCostAvailabilitySignalsAsync(role, effectiveUsage, cancellationToken);
         await LogCacheInflationSignalAsync(role, effectiveUsage, cancellationToken);
         await LogClaudeCostCeilingDisabledAsync(role, effectiveUsage, cancellationToken);
@@ -1391,28 +1399,7 @@ public sealed class RelayBroker
             cancellationToken);
     }
 
-    private async Task LogCodexPricingFallbackAsync(
-        string role,
-        RelayUsageMetrics usage,
-        CancellationToken cancellationToken)
-    {
-        if (role != AgentRole.Codex ||
-            string.IsNullOrWhiteSpace(usage.PricingFallbackReason) ||
-            State.CodexPricingFallbackAdvisoryFired)
-        {
-            return;
-        }
-
-        State.CodexPricingFallbackAdvisoryFired = true;
-        await PersistAndLogAsync(
-            new RelayLogEvent(
-                DateTimeOffset.Now,
-                "codex.pricing.fallback",
-                role,
-                $"{usage.PricingFallbackReason}. Rate card: {"(rate-card removed — DAD-v2 reset)"}. codex_model={usage.Model ?? "unknown"}",
-                usage.RawJson),
-            cancellationToken);
-    }
+    // LogCodexPricingFallbackAsync moved to Policy.CodexCostAdvisor in iter65 (B3 step 2).
 
     private async Task LogClaudeCostCeilingDisabledAsync(
         string role,
@@ -1477,31 +1464,7 @@ public sealed class RelayBroker
             cancellationToken);
     }
 
-    private async Task LogCodexRateCardStaleAsync(
-        string role,
-        CancellationToken cancellationToken)
-    {
-        if (role != AgentRole.Codex || State.CodexRateCardStaleAdvisoryFired)
-        {
-            return;
-        }
-
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var ageDays = today.DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber;
-        if (ageDays < 180)
-        {
-            return;
-        }
-
-        State.CodexRateCardStaleAdvisoryFired = true;
-        await PersistAndLogAsync(
-            new RelayLogEvent(
-                DateTimeOffset.Now,
-                "codex.rate_card.stale",
-                role,
-                $"Codex rate card {"(rate-card removed — DAD-v2 reset)"} is {ageDays} days old. Local Codex cost estimates for this session may be inaccurate until the rate card is refreshed."),
-            cancellationToken);
-    }
+    // LogCodexRateCardStaleAsync moved to Policy.CodexCostAdvisor in iter65 (B3 step 2).
 
     private async Task<bool> TryRotateForClaudeCostCeilingAsync(
         string role,
