@@ -2,14 +2,14 @@
 
 root: .
 base: main
-iteration: 92
-status: review-wait  # PR #53 머지됨 (iter92) — streak 리셋, PR #57 만 대기
-idle_upkeep_streak: 0  # iter92: 관리자가 PR #53 머지 → streak 리셋
-next_iter_unblock_plan: iter93 — PR #57 만 대기. 승인 시 즉시 머지 → G1 [x] flip → MVP 8/8.
+iteration: 93
+status: g1-flip-pr-opened  # iter93: PR #57 머지됨 + PR #58 G1 flip PR 오픈
+idle_upkeep_streak: 0
+next_iter_unblock_plan: iter94 — PR #58 (G1 flip) 관리자 확인 대기. 머지 시 MVP 8/8.
 backlog: .autopilot/BACKLOG.md (B1·B2·B3·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B8 blocked)
-open_autopilot_prs: [57]
-merged_since_last_iter: [53]  # iter92: PR #53 (validator) 관리자 머지 완료
-mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
+open_autopilot_prs: [58]  # iter93: G1 flip PR
+merged_since_last_iter: [57]  # iter93: PR #57 (CLAUDE.md 서두 v2) 관리자 머지 완료
+mvp_gates: 8/8 pending PR #58 flip-in confirmation (모든 G1 단계 착륙 완료)
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
 #   "핵심문서 변경만 관리자 한국어 PR 확인, 나머지는 자동 머지.
