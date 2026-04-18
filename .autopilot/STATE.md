@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 39
+iteration: 40
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter40 — G7 step 2/4: BacklogClosureWriter 순수 render + atomic WriteAsync + 3 facts.
+next_iter_unblock_plan: iter41 — G7 step 3/4: 브로커 배선(CompleteHandoffAsync에 ConvergenceDetector+BacklogClosureWriter wiring) + session.converged 이벤트 + G7 [ ]→[~] 플립.
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
 merged_since_last_iter: []
@@ -31,7 +31,7 @@ active_task:
   plan:
     - "DONE iter38: G7-PLAN.md 작성 (기존 필드/라이터 인프라 확인, 4-iter 로드맵)"
     - "DONE iter39: ConvergenceDetector 순수 함수 + RelaySessionStatus.Converged enum + 7 facts (PR #41, 32ee1f0)"
-    - "iter40: BacklogClosureWriter 순수 render + atomic WriteAsync + 3 facts"
+    - "DONE iter40: BacklogClosureWriter 순수 render + atomic WriteAsync + 5 facts (PR #42, b602980)"
     - "iter41: 브로커 wiring + session.converged 이벤트 + G7 [ ]→[~] 플립"
     - "iter42: fake-adapter e2e 스모크 + [~]→[x] 플립"
 
