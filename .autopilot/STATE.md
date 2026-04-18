@@ -2,14 +2,14 @@
 
 root: .
 base: main
-iteration: 45
+iteration: 46
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter46 — G6 [~]→[x] rotation smoke (summary.generated + carry-forward 주입 실증).
+next_iter_unblock_plan: iter47 — G-BUNDLE 완료 (G4·G5·G6 [x]). 남은 게이트 G1 (op-blocked) / G8 (audit log integrity, fresh capability). G8 스캐폴딩 또는 BACKLOG B4-B10 중 선택.
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
-merged_since_last_iter: [46]
-mvp_gates: 5/8 (G2 [x], G3 [x], G4 [x], G5 [x], G7 [x], G6 [~])
+merged_since_last_iter: [47]
+mvp_gates: 6/8 (G2 [x], G3 [x], G4 [x], G5 [x], G6 [x], G7 [x])
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
 #   "핵심문서 변경만 관리자 한국어 PR 확인, 나머지는 자동 머지.
@@ -32,7 +32,7 @@ active_task:
     - "DONE iter43: G-BUNDLE-PLAN.md 작성 (3-iter 로드맵 · 코드 변경 없음)"
     - "DONE iter44: G4 [~]→[x] 브로커 routing e2e (PR #45, 74686ef · 61/61)"
     - "DONE iter45: G5 [~]→[x] recovery_resume e2e (PR #46, 162c0ec · 63/63)"
-    - "iter46: G6 [~]→[x] rotation smoke (summary.generated + carry-forward 주입)"
+    - "DONE iter46: G6 [~]→[x] rotation smoke (PR #47, a3ba00a · 64/64)"
 
 last_completed_task_g7:
   slug: g7-consensus-convergence
@@ -41,10 +41,11 @@ last_completed_task_g7:
   final_commit: 26949eb
   plan_doc: .autopilot/G7-PLAN.md
 
-parked_task_g6:
+last_completed_task_g6:
   slug: g6-rolling-summary
-  gate: G6
-  status: "[~] partial — xunit coverage green, end-to-end rotation smoke bundle-candidate with G4/G5 [x]"
+  completed_iter: 46
+  prs: [40, 47]
+  final_commit: 9cfaf10
   plan_doc: .autopilot/G6-PLAN.md
 
 parked_task_g5:
