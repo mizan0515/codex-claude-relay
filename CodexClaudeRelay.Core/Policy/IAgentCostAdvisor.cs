@@ -1,20 +1,31 @@
+using CodexClaudeRelay.Core.Broker;
 using CodexClaudeRelay.Core.Models;
 
 namespace CodexClaudeRelay.Core.Policy;
 
 /// <summary>
 /// Narrow seam the broker hands to each advisor so advisors can read the
-/// session state and persist log events without pulling in the whole
+/// session state, inspect options, persist log events, trip budget signals,
+/// and rotate the session without pulling in the whole
 /// <see cref="Broker.RelayBroker"/> surface.
 ///
-/// Kept intentionally small — if an advisor needs a new hook (e.g. a
-/// rotation trigger), we add exactly that hook, not the whole broker.
+/// Kept intentionally small — if an advisor needs a new hook, we add
+/// exactly that hook, not the whole broker. iter66 (B3 step 3) added
+/// <see cref="Options"/>, <see cref="TripBudgetAsync"/>, and
+/// <see cref="RotateSessionAsync"/> so the Claude cost-ceiling rotate path
+/// can be owned by <see cref="ClaudeCostAdvisor"/>.
 /// </summary>
 public interface IBrokerCostContext
 {
     RelaySessionState State { get; }
 
+    RelayBrokerOptions Options { get; }
+
     Task PersistAndLogAsync(RelayLogEvent logEvent, CancellationToken cancellationToken);
+
+    Task<string> TripBudgetAsync(string role, string signal, string reason, string? payload, CancellationToken cancellationToken);
+
+    Task RotateSessionAsync(string reason, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -144,11 +155,139 @@ public sealed class CodexCostAdvisor : IAgentCostAdvisor
 }
 
 /// <summary>
-/// Claude-side cost advisories. Step 3 (future iter) moves the four Claude
-/// branches (cost-ceiling-disabled, cache-inflation, cost-absent,
-/// TryRotateForClaudeCostCeiling). For now the broker still owns them.
+/// Claude-side cost advisories. iter66 (B3 step 3) absorbed the four Claude
+/// branches from <see cref="Broker.RelayBroker"/>:
+/// cost-availability / cache-inflation / cost-ceiling-disabled log fires
+/// (all one-shot, gated on existing State flags) are emitted from
+/// <see cref="OnUsageObservedAsync"/>; the api-key cost-ceiling rotate
+/// flow is owned by <see cref="ShouldRotateForCostCeilingAsync"/>.
+/// Behavior is byte-identical to the pre-move code (same event types,
+/// same messages, same State flag names, same trip/rotate sequence).
 /// </summary>
 public sealed class ClaudeCostAdvisor : IAgentCostAdvisor
 {
+    private const long SuspiciousClaudeCacheCreationTokens = 15_000;
+
     public string Role => AgentRole.Claude;
+
+    public async ValueTask OnUsageObservedAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(usage);
+
+        await LogCostAvailabilityAsync(ctx, usage, cancellationToken).ConfigureAwait(false);
+        await LogCacheInflationAsync(ctx, usage, cancellationToken).ConfigureAwait(false);
+        await LogCostCeilingDisabledAsync(ctx, usage, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<bool> ShouldRotateForCostCeilingAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(usage);
+
+        if (!ctx.Options.MaxClaudeCostUsd.HasValue)
+        {
+            return false;
+        }
+
+        if (!ClaudeAuthMethod.IsApiKey(usage.AuthMethod))
+        {
+            return false;
+        }
+
+        var segmentCost = Math.Max(0d, ctx.State.TotalCostClaudeUsd - ctx.State.ClaudeCostAtLastRotationUsd);
+        if (segmentCost < ctx.Options.MaxClaudeCostUsd.Value)
+        {
+            return false;
+        }
+
+        var reason = await ctx.TripBudgetAsync(
+            AgentRole.Claude,
+            "claude_cost_ceiling",
+            $"Claude api-key estimated cost ceiling reached for this session segment. segment_cost_usd={segmentCost:F4}, ceiling_usd={ctx.Options.MaxClaudeCostUsd.Value:F4}. Rotating session.",
+            usage.RawJson,
+            cancellationToken).ConfigureAwait(false);
+        await ctx.RotateSessionAsync(reason, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    private static async Task LogCostAvailabilityAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken)
+    {
+        if (ctx.State.ClaudeCostAbsentAdvisoryFired)
+        {
+            return;
+        }
+
+        var turnHadRealTokens =
+            (usage.InputTokens ?? 0) > 0 ||
+            (usage.OutputTokens ?? 0) > 0 ||
+            (usage.CacheCreationInputTokens ?? 0) > 0 ||
+            (usage.CacheReadInputTokens ?? 0) > 0;
+
+        if (!turnHadRealTokens || (usage.CostUsd is not null && usage.CostUsd > 0d))
+        {
+            return;
+        }
+
+        ctx.State.ClaudeCostAbsentAdvisoryFired = true;
+        await ctx.PersistAndLogAsync(
+            new RelayLogEvent(
+                DateTimeOffset.Now,
+                "claude.cost.absent",
+                AgentRole.Claude,
+                $"Claude reported token usage but no positive CLI-estimated cost. This can happen on subscription plans, provider-routed deployments, or CLI versions without cost reporting. claude_cli_version={usage.CliVersion ?? "unknown"}",
+                usage.RawJson),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task LogCacheInflationAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken)
+    {
+        if (ctx.State.TurnsSinceLastRotation < 1 || ctx.State.CacheInflationAdvisoryFired)
+        {
+            return;
+        }
+
+        var cacheCreationTokens = usage.CacheCreationInputTokens ?? 0;
+        var nonCachedInputTokens = usage.InputTokens ?? 0;
+        if (cacheCreationTokens < SuspiciousClaudeCacheCreationTokens)
+        {
+            return;
+        }
+
+        if (nonCachedInputTokens > 0 && cacheCreationTokens <= nonCachedInputTokens * 2)
+        {
+            return;
+        }
+
+        ctx.State.CacheInflationAdvisoryFired = true;
+        await ctx.PersistAndLogAsync(
+            new RelayLogEvent(
+                DateTimeOffset.Now,
+                "cache.inflation.suspected",
+                AgentRole.Claude,
+                $"cache_creation_input_tokens={cacheCreationTokens}, input_tokens={nonCachedInputTokens}, claude_cli_version={usage.CliVersion ?? "unknown"}. Possible Claude CLI cache-creation inflation (see Anthropic issue #46917). Further inflation this session will remain visible only in adapter.usage totals.",
+                usage.RawJson),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task LogCostCeilingDisabledAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken)
+    {
+        if (!ctx.Options.MaxClaudeCostUsd.HasValue ||
+            ctx.State.ClaudeCostCeilingDisabledAdvisoryFired ||
+            string.IsNullOrWhiteSpace(usage.AuthMethod) ||
+            ClaudeAuthMethod.IsApiKey(usage.AuthMethod))
+        {
+            return;
+        }
+
+        ctx.State.ClaudeCostCeilingDisabledAdvisoryFired = true;
+        await ctx.PersistAndLogAsync(
+            new RelayLogEvent(
+                DateTimeOffset.Now,
+                "cost.ceiling.disabled",
+                AgentRole.Claude,
+                $"Configured Claude cost ceiling is inactive for this session segment because auth is not api-key. ceiling_usd={ctx.Options.MaxClaudeCostUsd.Value:F4}, observed_auth_method={usage.AuthMethod}.",
+                usage.RawJson),
+            cancellationToken).ConfigureAwait(false);
+    }
 }

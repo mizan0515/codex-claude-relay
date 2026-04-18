@@ -8,7 +8,7 @@ namespace CodexClaudeRelay.Core.Broker;
 
 public sealed class RelayBroker : IBrokerCostContext
 {
-    private const long SuspiciousClaudeCacheCreationTokens = 15_000;
+    // SuspiciousClaudeCacheCreationTokens constant moved to Policy.ClaudeCostAdvisor in iter66 (B3 step 3).
 
     private readonly IReadOnlyDictionary<string, IRelayAdapter> _adapters;
     private readonly IReadOnlyDictionary<string, IRelayAdapter> _fallbackAdapters;
@@ -22,8 +22,13 @@ public sealed class RelayBroker : IBrokerCostContext
     // per-role advisors (see Policy/IAgentCostAdvisor.cs). State is already
     // public; PersistAndLogAsync stays private to everyone else.
     RelaySessionState IBrokerCostContext.State => State;
+    RelayBrokerOptions IBrokerCostContext.Options => _options;
     Task IBrokerCostContext.PersistAndLogAsync(RelayLogEvent logEvent, CancellationToken cancellationToken)
         => PersistAndLogAsync(logEvent, cancellationToken);
+    Task<string> IBrokerCostContext.TripBudgetAsync(string role, string signal, string reason, string? payload, CancellationToken cancellationToken)
+        => TripBudgetAsync(role, signal, reason, payload, cancellationToken);
+    Task IBrokerCostContext.RotateSessionAsync(string reason, CancellationToken cancellationToken)
+        => RotateSessionAsync(reason, cancellationToken);
 
     public RelayBroker(
         IEnumerable<IRelayAdapter> adapters,
@@ -1286,11 +1291,9 @@ public sealed class RelayBroker : IBrokerCostContext
             new RelayLogEvent(DateTimeOffset.Now, "adapter.usage", role, summary, usage.RawJson),
             cancellationToken);
 
-        await _costAdvisors.For(role).OnUsageObservedAsync(this, effectiveUsage, cancellationToken).ConfigureAwait(false);
-        await LogCostAvailabilitySignalsAsync(role, effectiveUsage, cancellationToken);
-        await LogCacheInflationSignalAsync(role, effectiveUsage, cancellationToken);
-        await LogClaudeCostCeilingDisabledAsync(role, effectiveUsage, cancellationToken);
-        if (await TryRotateForClaudeCostCeilingAsync(role, effectiveUsage, cancellationToken))
+        var advisor = _costAdvisors.For(role);
+        await advisor.OnUsageObservedAsync(this, effectiveUsage, cancellationToken).ConfigureAwait(false);
+        if (await advisor.ShouldRotateForCostCeilingAsync(this, effectiveUsage, cancellationToken).ConfigureAwait(false))
         {
             return null;
         }
@@ -1362,140 +1365,12 @@ public sealed class RelayBroker : IBrokerCostContext
         return cacheReadTokens / (double)denominator;
     }
 
-    private async Task LogCostAvailabilitySignalsAsync(
-        string role,
-        RelayUsageMetrics usage,
-        CancellationToken cancellationToken)
-    {
-        if (role != AgentRole.Claude)
-        {
-            return;
-        }
-
-        if (State.ClaudeCostAbsentAdvisoryFired)
-        {
-            return;
-        }
-
-        var turnHadRealTokens =
-            (usage.InputTokens ?? 0) > 0 ||
-            (usage.OutputTokens ?? 0) > 0 ||
-            (usage.CacheCreationInputTokens ?? 0) > 0 ||
-            (usage.CacheReadInputTokens ?? 0) > 0;
-
-        if (!turnHadRealTokens || (usage.CostUsd is not null && usage.CostUsd > 0d))
-        {
-            return;
-        }
-
-        State.ClaudeCostAbsentAdvisoryFired = true;
-        await PersistAndLogAsync(
-            new RelayLogEvent(
-                DateTimeOffset.Now,
-                "claude.cost.absent",
-                role,
-                $"Claude reported token usage but no positive CLI-estimated cost. This can happen on subscription plans, provider-routed deployments, or CLI versions without cost reporting. claude_cli_version={usage.CliVersion ?? "unknown"}",
-                usage.RawJson),
-            cancellationToken);
-    }
-
-    // LogCodexPricingFallbackAsync moved to Policy.CodexCostAdvisor in iter65 (B3 step 2).
-
-    private async Task LogClaudeCostCeilingDisabledAsync(
-        string role,
-        RelayUsageMetrics usage,
-        CancellationToken cancellationToken)
-    {
-        if (role != AgentRole.Claude ||
-            !_options.MaxClaudeCostUsd.HasValue ||
-            State.ClaudeCostCeilingDisabledAdvisoryFired ||
-            string.IsNullOrWhiteSpace(usage.AuthMethod) ||
-            ClaudeAuthMethod.IsApiKey(usage.AuthMethod))
-        {
-            return;
-        }
-
-        State.ClaudeCostCeilingDisabledAdvisoryFired = true;
-        await PersistAndLogAsync(
-            new RelayLogEvent(
-                DateTimeOffset.Now,
-                "cost.ceiling.disabled",
-                role,
-                $"Configured Claude cost ceiling is inactive for this session segment because auth is not api-key. ceiling_usd={_options.MaxClaudeCostUsd.Value:F4}, observed_auth_method={usage.AuthMethod}.",
-                usage.RawJson),
-            cancellationToken);
-    }
-
-    private async Task LogCacheInflationSignalAsync(
-        string role,
-        RelayUsageMetrics usage,
-        CancellationToken cancellationToken)
-    {
-        if (role != AgentRole.Claude)
-        {
-            return;
-        }
-
-        if (State.TurnsSinceLastRotation < 1 || State.CacheInflationAdvisoryFired)
-        {
-            return;
-        }
-
-        var cacheCreationTokens = usage.CacheCreationInputTokens ?? 0;
-        var nonCachedInputTokens = usage.InputTokens ?? 0;
-        if (cacheCreationTokens < SuspiciousClaudeCacheCreationTokens)
-        {
-            return;
-        }
-
-        if (nonCachedInputTokens > 0 && cacheCreationTokens <= nonCachedInputTokens * 2)
-        {
-            return;
-        }
-
-        State.CacheInflationAdvisoryFired = true;
-        await PersistAndLogAsync(
-            new RelayLogEvent(
-                DateTimeOffset.Now,
-                "cache.inflation.suspected",
-                role,
-                $"cache_creation_input_tokens={cacheCreationTokens}, input_tokens={nonCachedInputTokens}, claude_cli_version={usage.CliVersion ?? "unknown"}. Possible Claude CLI cache-creation inflation (see Anthropic issue #46917). Further inflation this session will remain visible only in adapter.usage totals.",
-                usage.RawJson),
-            cancellationToken);
-    }
-
-    // LogCodexRateCardStaleAsync moved to Policy.CodexCostAdvisor in iter65 (B3 step 2).
-
-    private async Task<bool> TryRotateForClaudeCostCeilingAsync(
-        string role,
-        RelayUsageMetrics usage,
-        CancellationToken cancellationToken)
-    {
-        if (role != AgentRole.Claude || !_options.MaxClaudeCostUsd.HasValue)
-        {
-            return false;
-        }
-
-        if (!ClaudeAuthMethod.IsApiKey(usage.AuthMethod))
-        {
-            return false;
-        }
-
-        var segmentCost = Math.Max(0d, State.TotalCostClaudeUsd - State.ClaudeCostAtLastRotationUsd);
-        if (segmentCost < _options.MaxClaudeCostUsd.Value)
-        {
-            return false;
-        }
-
-        var reason = await TripBudgetAsync(
-            role,
-            "claude_cost_ceiling",
-            $"Claude api-key estimated cost ceiling reached for this session segment. segment_cost_usd={segmentCost:F4}, ceiling_usd={_options.MaxClaudeCostUsd.Value:F4}. Rotating session.",
-            usage.RawJson,
-            cancellationToken);
-        await RotateSessionAsync(reason, cancellationToken);
-        return true;
-    }
+    // 4 Claude cost methods (LogCostAvailabilitySignalsAsync, LogCacheInflationSignalAsync,
+    // LogClaudeCostCeilingDisabledAsync, TryRotateForClaudeCostCeilingAsync) moved to
+    // Policy.ClaudeCostAdvisor in iter66 (B3 step 3). Behavior byte-identical —
+    // same event types, same messages, same State flag names, same trip+rotate sequence.
+    // 2 Codex cost methods (LogCodexPricingFallbackAsync, LogCodexRateCardStaleAsync)
+    // moved to Policy.CodexCostAdvisor in iter65 (B3 step 2).
 
     private string? EvaluateRotationReason() =>
         CodexClaudeRelay.Core.Runtime.RotationEvaluator.Evaluate(
