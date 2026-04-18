@@ -3,6 +3,21 @@ using CodexClaudeRelay.Core.Models;
 namespace CodexClaudeRelay.Core.Policy;
 
 /// <summary>
+/// Narrow seam the broker hands to each advisor so advisors can read the
+/// session state and persist log events without pulling in the whole
+/// <see cref="Broker.RelayBroker"/> surface.
+///
+/// Kept intentionally small — if an advisor needs a new hook (e.g. a
+/// rotation trigger), we add exactly that hook, not the whole broker.
+/// </summary>
+public interface IBrokerCostContext
+{
+    RelaySessionState State { get; }
+
+    Task PersistAndLogAsync(RelayLogEvent logEvent, CancellationToken cancellationToken);
+}
+
+/// <summary>
 /// Per-role cost advisory contract for G1 peer symmetry (B3 step 1).
 ///
 /// Today <see cref="Broker.RelayBroker"/> carries six role-conditional
@@ -36,13 +51,13 @@ public interface IAgentCostAdvisor
     /// recent usage reading. Default implementation is a no-op so concrete
     /// advisors only override the hooks they need.
     /// </summary>
-    ValueTask OnUsageObservedAsync(RelayUsageMetrics usage, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    ValueTask OnUsageObservedAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken) => ValueTask.CompletedTask;
 
     /// <summary>
     /// Returns true if the role's cost ceiling was reached and the caller
     /// should rotate the session. Default: false (no ceiling enforced).
     /// </summary>
-    ValueTask<bool> ShouldRotateForCostCeilingAsync(RelayUsageMetrics usage, CancellationToken cancellationToken) => ValueTask.FromResult(false);
+    ValueTask<bool> ShouldRotateForCostCeilingAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken) => ValueTask.FromResult(false);
 }
 
 /// <summary>
@@ -78,16 +93,61 @@ public sealed class AgentCostAdvisorRegistry
 }
 
 /// <summary>
-/// Concrete advisor stubs for iter64 scaffolding. Both sides default to
-/// no-op behavior — follow-up iters move the existing broker logic here
-/// method-by-method without changing observable behavior.
+/// Codex-side cost advisories. iter65 (B3 step 2) absorbed the two Codex
+/// branches from <see cref="Broker.RelayBroker"/>:
+/// pricing-fallback notice (one-shot when the adapter reports a fallback
+/// reason) and rate-card-stale notice (one-shot when the stub rate-card
+/// age ≥ 180 days). Behavior is byte-identical to the pre-move code.
 /// </summary>
 public sealed class CodexCostAdvisor : IAgentCostAdvisor
 {
+    private const string RateCardLabel = "(rate-card removed — DAD-v2 reset)";
+
     public string Role => AgentRole.Codex;
+
+    public async ValueTask OnUsageObservedAsync(IBrokerCostContext ctx, RelayUsageMetrics usage, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(ctx);
+        ArgumentNullException.ThrowIfNull(usage);
+
+        if (!string.IsNullOrWhiteSpace(usage.PricingFallbackReason) &&
+            !ctx.State.CodexPricingFallbackAdvisoryFired)
+        {
+            ctx.State.CodexPricingFallbackAdvisoryFired = true;
+            await ctx.PersistAndLogAsync(
+                new RelayLogEvent(
+                    DateTimeOffset.Now,
+                    "codex.pricing.fallback",
+                    AgentRole.Codex,
+                    $"{usage.PricingFallbackReason}. Rate card: {RateCardLabel}. codex_model={usage.Model ?? "unknown"}",
+                    usage.RawJson),
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        if (!ctx.State.CodexRateCardStaleAdvisoryFired)
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var ageDays = today.DayNumber - DateOnly.FromDateTime(DateTime.UnixEpoch).DayNumber;
+            if (ageDays >= 180)
+            {
+                ctx.State.CodexRateCardStaleAdvisoryFired = true;
+                await ctx.PersistAndLogAsync(
+                    new RelayLogEvent(
+                        DateTimeOffset.Now,
+                        "codex.rate_card.stale",
+                        AgentRole.Codex,
+                        $"Codex rate card {RateCardLabel} is {ageDays} days old. Local Codex cost estimates for this session may be inaccurate until the rate card is refreshed."),
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
 }
 
-/// <inheritdoc cref="CodexCostAdvisor" />
+/// <summary>
+/// Claude-side cost advisories. Step 3 (future iter) moves the four Claude
+/// branches (cost-ceiling-disabled, cache-inflation, cost-absent,
+/// TryRotateForClaudeCostCeiling). For now the broker still owns them.
+/// </summary>
 public sealed class ClaudeCostAdvisor : IAgentCostAdvisor
 {
     public string Role => AgentRole.Claude;
