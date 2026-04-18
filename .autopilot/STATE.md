@@ -2,14 +2,14 @@
 
 root: .
 base: main
-iteration: 48
+iteration: 49
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter49 — G8 step 3/3. Broker replay-dedup e2e (동일 핸드오프 2회 제출 → AcceptedRelayKeys 로 두 번째 거부 + 이벤트 로그에 해시 라인 1회만) → G8 [ ]→[x] → MVP 7/8.
-backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4 IN-PROGRESS step 2/3 완료, B5-B10 available)
+next_iter_unblock_plan: iter50 — MVP 7/8 달성. 남은 G1 은 operator-blocked (validator 포팅/cost-strip/scraping 3 결정). 대안 경로 — BACKLOG B5-B10 재스코어링 또는 Brainstorm 모드(PROMPT 규칙). 최우선 후보 B5 checkpoint.verified 는 이미 G3 [x] 로 흡수됨 → B8 Headless smoke harness (run-smoke.ps1) 가 protected_paths(tools/) 로 블록 → B10 PROMPT self-evolution 또는 idle-upkeep.
+backlog: .autopilot/BACKLOG.md (B2 DONE, B4 DONE (G8), B1+B3 op-blocked, B5-B7 중복, B8+B10 available)
 open_autopilot_prs: []
-merged_since_last_iter: [49]
-mvp_gates: 6/8 (G2 [x], G3 [x], G4 [x], G5 [x], G6 [x], G7 [x]) + G8 event_hash 배선 완료
+merged_since_last_iter: [50, 61a55a4]
+mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
 #   "핵심문서 변경만 관리자 한국어 PR 확인, 나머지는 자동 머지.
@@ -30,7 +30,13 @@ active_task:
   plan:
     - "DONE iter47: CanonicalHash foundation (PR #48, b5f2dfd · 73/73)"
     - "DONE iter48: RelayLogEvent.event_hash + JsonlEventLogWriter stamp (PR #49, a4e103d · 79/79)"
-    - "iter49: replay-dedup xunit e2e — 동일 패킷 2회 제출 → state transition 1회 증명 → G8 [ ]→[x]"
+    - "DONE iter49: replay-dedup + crash-survival e2e (PR #50, 769274a · 81/81) + G8 [ ]→[x] (61a55a4)"
+
+last_completed_task_g8:
+  slug: g8-audit-log-integrity
+  completed_iter: 49
+  prs: [48, 49, 50]
+  final_commit: 61a55a4
 
 last_completed_task_g-bundle:
   slug: g-bundle-follow-up
