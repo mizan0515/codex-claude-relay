@@ -2,11 +2,11 @@
 
 root: .
 base: main
-iteration: 57
+iteration: 58
 status: active
-idle_upkeep_streak: 0  # PR #51 리뷰 대기 병행 · iter57 에 B13.1 regen script 착륙
-next_iter_unblock_plan: iter58 — PR #51 폴링 4회째 + 추가 작은 개선(B15 후 보조 작업 or idle-upkeep). 여전히 reviewDecision=""/comments=[]. iter57 에서 B13.1 regen 스크립트 main 직접 커밋(non-protected .autopilot/regen-histogram.py). iter58 후보 — (a) 재생성 스크립트를 exit-contract 훅에 붙이는 후속(PROMPT 규칙 수정 필요 → protected 이라 미정) / (b) idle-upkeep 계속.
-backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B14 DONE · B11 CLOSED · B15 IN-REVIEW · active=B1·B3·B10·B8)
+idle_upkeep_streak: 0  # iter58: B10 spec 착륙(DECISION-BLOCKED-STATE.md), 병행 개선 지속
+next_iter_unblock_plan: iter59 — PR #51 폴링 5회째 + 부속 작업. iter58 에 B10 SPEC-LANDED(`.autopilot/DECISION-BLOCKED-STATE.md` · 3 규칙 R-BLOCKED/R-REVIEW/R-DRIFT 제안 + 회고 검증). iter59 후보 — (a) `.autopilot/` open_questions 3건 중 답변 가능한 항목 audit / (b) STATE.md 의 parked_task 엔트리 정리 / (c) idle-upkeep.
+backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B13.1·B14 DONE · B11 CLOSED · B10 SPEC-LANDED · B15 IN-REVIEW · active=B1·B3·B8)
 open_autopilot_prs: [51]
 merged_since_last_iter: [50, 61a55a4]
 mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
