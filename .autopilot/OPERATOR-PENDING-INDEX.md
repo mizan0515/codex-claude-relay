@@ -15,17 +15,11 @@
 
 ---
 
-## 🟠 2. G1 게이트 해제 — 3 결정 (validator / cost / 서두 정정)
+## ✅ 2. G1 게이트 해제 — 답변 도착 (iter61)
 
-- **문서**: `.autopilot/G1-UNBLOCKING-RUNBOOK.md` (iter51 작성)
-- **결정 3개**: ① validator 포팅 (a/b/c) · ② Codex/Claude 비용 경로 (d/e/f) · ③ CLAUDE.md 서두 정정 승인/보류
-- **관리자님 답변 형식**: 해당 파일 맨 아래 한 줄
-  ```
-  1: (a/b/c)
-  2: (d/e/f)
-  3: (승인/보류)
-  ```
-- **영향**: 답변 도착 즉시 G1 스프린트 착수(2~4 iter) → MVP **8/8** 완주 경로.
+- **관리자 답변**: `1: b · 2: e · 3: 승인` ("전부 추천대로")
+- **문서**: `.autopilot/G1-UNBLOCKING-RUNBOOK.md` 하단 "관리자 답변" 블록 참조
+- **iter62+ 계획**: B1(PacketIO) → validator 스크래핑 → B3(AgentCostAdvisor 대칭화) → CLAUDE.md 서두 PR → G1 `[x]` flip → **MVP 8/8**
 
 ---
 

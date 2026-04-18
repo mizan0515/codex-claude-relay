@@ -82,3 +82,23 @@ MVP 게이트 8개 중 **7개(G2·G3·G4·G5·G6·G7·G8)** 는 로봇이 자동
 —
 
 *작성: iter51 (2026-04-19) · 근거: `.autopilot/STATE.md` `operator_requests` + `.autopilot/BACKLOG.md` B1·B3 항목*
+
+---
+
+## ✅ 관리자 답변 (iter61, 2026-04-19)
+
+```
+1: b   (기존 en/ko Validate-Dad*.ps1 스크래핑)
+2: e   (AgentCostAdvisor 로 양쪽 대칭화 — generalize)
+3: 승인 (CLAUDE.md 서두 v2 언어로 정정)
+```
+
+관리자님 원문: *"전부 추천하는대로 해줘"* — 세 항목 모두 RUNBOOK 추천안 채택.
+
+**로봇 다음 스텝 (iter62+)**:
+1. **B1 (G1 core)** 언파크 → `autopilot/g1-peer-symmetric-packet-io` 브랜치 생성 → `CodexClaudeRelay.Core/Protocol/PacketIO.cs` + `CodexClaudeRelay.Core.Tests` 라운드트립 테스트.
+2. **validator 포팅 (b)** — `D:\dad-v2-system-template\{en,ko}\tools\Validate-Dad*.ps1` 스크래핑해 `tools/Validate-Dad-Packet.ps1` 착륙 (protected_paths → 한국어 PR, 리뷰 필수).
+3. **B3 cost 대칭화 (e)** — `AgentCostAdvisor` 전략 도입 PR (Core 내부, 비-protected, 자동 머지).
+4. **CLAUDE.md 서두 정정 (3)** — protected_paths, 한국어 PR, 리뷰 필수.
+
+예상: 2~4 iter 후 G1 `[x]` flip → **MVP 8/8 완주**.

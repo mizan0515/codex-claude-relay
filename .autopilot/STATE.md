@@ -2,13 +2,13 @@
 
 root: .
 base: main
-iteration: 60
+iteration: 61
 status: active
-idle_upkeep_streak: 0  # iter60: PR #51 MERGED → 리뷰대기 해제
-next_iter_unblock_plan: iter61 — PR #51(B15) 머지 완료(f21b617). 열린 PR 0건. iter61 후보 — (a) parked_task 엔트리(g1/g4/g5) 정리(실제로는 G4/G5 는 [x] 완주, g1 만 유효) / (b) BACKLOG completed 섹션 정리 / (c) open_questions 3건 중 답변 가능 항목 audit.
-backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B1·B3·B8)
+idle_upkeep_streak: 0  # iter61: 🎉 관리자 G1 답변 접수 (1:b · 2:e · 3:승인) → G1 언블록
+next_iter_unblock_plan: iter62 — G1 스프린트 착수. 순서 (1) B1 PacketIO.Read/Write + Core.Tests 라운드트립 브랜치 `autopilot/g1-peer-symmetric-packet-io` / (2) validator 포팅 (b) — en/ko Validate-Dad*.ps1 스크래핑 → `tools/Validate-Dad-Packet.ps1` (protected → 한국어 PR) / (3) B3 AgentCostAdvisor 대칭화 (e) / (4) CLAUDE.md 서두 정정 (승인). 2~4 iter 내 G1 [x] flip 목표.
+backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B1·B3·B8; B1·B3 언블록 완료)
 open_autopilot_prs: []
-merged_since_last_iter: [51, f21b617]
+merged_since_last_iter: []
 mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
@@ -66,10 +66,14 @@ last_completed_task:
   completed_iter: 25
   prs: [33, 34]
   final_commit: 46aaa59
-parked_task:
+active_task_g1:
   slug: g1-peer-symmetric-packet-io
-  reason: blocked on validator + cost-strip operator decisions
-  branch: autopilot/g1-peer-symmetric-packet-io-20260418 (not yet created)
+  status: "UNBLOCKED iter61 — 관리자 3 결정 접수 (1:b · 2:e · 3:승인)"
+  branch: autopilot/g1-peer-symmetric-packet-io (iter62 생성 예정)
+  decisions:
+    validator: "b — en/ko Validate-Dad*.ps1 스크래핑 → tools/Validate-Dad-Packet.ps1"
+    cost_path: "e — AgentCostAdvisor 전략으로 Codex/Claude 대칭화"
+    claude_md_intro: "승인 — 서두 ~20줄 v2 언어로 정정"
 
 plan_docs:
   - DEV-PROGRESS.md
@@ -107,9 +111,10 @@ open_questions:
   - "Does the approval-UI surface need dual-agent view redesign, or can the existing single-pane approach serve both peers with role labels?"
   - "Is there a production DAD-v2 session artifact to replay against, or must we synthesize fixtures for the first gate?"
 
-operator_requests:
-  - "G1 validator 포팅 (tools/Validate-Dad*.ps1) — 세 옵션 중 하나 지시 필요."
-  - "Codex/Claude 비대칭 비용 경로 — strip / generalize / defer 중 하나."
-  - "옛 Validate-TemplateVariants 스크래핑 + CLAUDE.md 서두 정정 승인."
+operator_requests: []  # iter61: 3건 모두 답변 접수 — RUNBOOK 하단 참조
+operator_answered_iter61:
+  - "validator: b (en/ko 스크래핑)"
+  - "cost_path: e (generalize via AgentCostAdvisor)"
+  - "claude_md_intro: 승인"
 
 mvp_last_advanced_iter: 20
