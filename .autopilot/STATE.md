@@ -2,11 +2,11 @@
 
 root: .
 base: main
-iteration: 49
+iteration: 50
 status: active
-idle_upkeep_streak: 0
-next_iter_unblock_plan: iter50 — MVP 7/8 달성. 남은 G1 은 operator-blocked (validator 포팅/cost-strip/scraping 3 결정). 대안 경로 — BACKLOG B5-B10 재스코어링 또는 Brainstorm 모드(PROMPT 규칙). 최우선 후보 B5 checkpoint.verified 는 이미 G3 [x] 로 흡수됨 → B8 Headless smoke harness (run-smoke.ps1) 가 protected_paths(tools/) 로 블록 → B10 PROMPT self-evolution 또는 idle-upkeep.
-backlog: .autopilot/BACKLOG.md (B2 DONE, B4 DONE (G8), B1+B3 op-blocked, B5-B7 중복, B8+B10 available)
+idle_upkeep_streak: 1
+next_iter_unblock_plan: iter51 — MVP 7/8 유지. G1 운영자 3-결정 여전히 블록. iter50 에서 BACKLOG 재스코어링 + B11~B15 brainstorm 완료. iter51 후보 — (a) B12 G1-UNBLOCKING-RUNBOOK.md 작성(non-protected, 운영자 readability 개선) / (b) B11 EventHashStamper 순수 리팩터(non-protected, RelayBroker.cs) / (c) B15 flip-history digest(.autopilot/MVP-GATES.md 는 protected 이므로 PR 필수). 운영자 지시 도착 시 G1 즉시 재개.
+backlog: .autopilot/BACKLOG.md (iter50 재작성: B2·B4·B5·B6·B7·B9 Completed · active=B1·B3·B10·B8 · 신규 brainstorm B11~B15)
 open_autopilot_prs: []
 merged_since_last_iter: [50, 61a55a4]
 mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
@@ -21,16 +21,7 @@ operator_directives_sticky:
   - "모든 PR 본문은 비개발자 고등학생 관리자 가독성 우선 (한국어 병기, 기술용어 최소화)"
   - "매 iter 행적은 HISTORY.md + 대시보드.md + METRICS.jsonl에 남긴다"
 
-active_task:
-  slug: g8-audit-log-integrity
-  pr: null
-  branch: null
-  gate: G8
-  started_iter: 47
-  plan:
-    - "DONE iter47: CanonicalHash foundation (PR #48, b5f2dfd · 73/73)"
-    - "DONE iter48: RelayLogEvent.event_hash + JsonlEventLogWriter stamp (PR #49, a4e103d · 79/79)"
-    - "DONE iter49: replay-dedup + crash-survival e2e (PR #50, 769274a · 81/81) + G8 [ ]→[x] (61a55a4)"
+active_task: null  # iter50 idle-upkeep — no code sprint, BACKLOG 정리만
 
 last_completed_task_g8:
   slug: g8-audit-log-integrity
