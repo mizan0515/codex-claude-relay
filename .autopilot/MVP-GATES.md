@@ -84,7 +84,7 @@ reversion is a rule break.
   mutating e2e 테스트 직렬화. xunit 61/61 통과.
 
 ## G5 — recovery_resume protocol
-- [~] When a turn ends with `closeout_kind: recovery_resume` (context
+- [x] When a turn ends with `closeout_kind: recovery_resume` (context
       overflow), the broker loads `.prompts/04-session-recovery-resume.md`,
       injects `open_risks` + empty `prompt_artifact` handling, and the next
       agent continues without loss of `my_work` state.
@@ -104,6 +104,16 @@ reversion is a rule break.
   `my_work.continued_from_resume: true`가 실제로 실림을 증명. G4 `[~]→[x]`
   follow-up(같은 fake-adapter harness)과 번들 권장. 단위 레이어 증거는
   `[~]` 충족.
+- 2026-04-19 — G5 `[~]` → `[x]`. Evidence: PR #46 (머지 162c0ec).
+  `BrokerRecoveryResumeE2ETests` 2 facts (Codex-first / Claude-first 대칭).
+  turn 1 closeout_kind=recovery_resume → `session.recovery_resume` 이벤트 +
+  `State.CarryForwardPending=true` + `State.PendingPrompt`에
+  `[recovery_resume]` 프리앰블 + `continued_from_resume` 지시 + 원본 prompt
+  prepend. turn 2 next-peer 어댑터가 수신한 `context.Prompt`가 그 프리앰블을
+  실제로 포함함을 `CapturingAdapter`로 intercept & assert. turn 2
+  peer_handoff 정상 수락 → CurrentTurn=3 + turn-2.yaml + turn-2-handoff.md
+  landing. xunit 63/63 통과. `continued_from_resume`는 agent-set 플래그(
+  broker는 지시 전달만 담당)이므로 preamble 도달 증명이 계약 범위.
 
 ## G6 — Rolling summary + carry-forward injection
 - [~] At session rotation (turn/time/token trigger), broker writes a
@@ -218,3 +228,7 @@ pointer. Never delete history lines — they are the regression audit trail.)
   `BrokerRoutingRoundTripE2ETests` 2 facts (Codex-first + Claude-first 대칭).
   CannedAdapter 쌍으로 broker.AdvanceAsync 왕복 → turn-1/2.yaml + handoff.md
   + state.json(current_turn=3, alternating ActiveAgent) 실증. 61/61 통과.
+- 2026-04-19 — G5 `[~]` → `[x]`. Evidence: PR #46 (머지 162c0ec).
+  `BrokerRecoveryResumeE2ETests` 2 facts (Codex-first/Claude-first 대칭).
+  recovery_resume turn → session.recovery_resume 이벤트 + CarryForwardPending
+  + PendingPrompt에 preamble prepend; next-peer가 preamble 수신 실증. 63/63.
