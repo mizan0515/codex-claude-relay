@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 34
+iteration: 35
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter35 — G6 착수 (rolling summary + carry-forward) 계획 문서, 또는 G4+G5 [x] bundled follow-up (fake-adapter harness ~180 LOC)
+next_iter_unblock_plan: iter36 — G6 step 1/3 (CarryForwardRendererTests + RollingSummaryWriterTests, 순수 facts ≤80 LOC)
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
 merged_since_last_iter: []
@@ -22,18 +22,23 @@ operator_directives_sticky:
   - "매 iter 행적은 HISTORY.md + 대시보드.md + METRICS.jsonl에 남긴다"
 
 active_task:
-  slug: g5-recovery-resume
+  slug: g6-rolling-summary
   pr: null
-  branch: null (iter32에 생성)
-  gate: G5
-  started_iter: 31
-  plan_doc: .autopilot/G5-PLAN.md
+  branch: null (iter36에 생성)
+  gate: G6
+  started_iter: 35
+  plan_doc: .autopilot/G6-PLAN.md
   plan:
-    - "DONE iter31: G5-PLAN.md 작성 (기존 인프라 파악, 3-iter 실행 순서)"
-    - "DONE iter32: HandoffEnvelope.closeout_kind + TurnPacketAdapter 매핑 + xunit 1 fact (PR #38, 9e087fa)"
-    - "DONE iter33: 브로커 recovery_resume 분기 + RecoveryResumePromptBuilder + xunit 3 facts (PR #39, 0b94f25)"
-    - "DONE iter34: G5 [ ]→[~] 플립 (MVP-GATES.md 증거 스택 기록) + G5-PLAN.md follow-up"
-    - "iter35+: G5 [~]→[x] — fake-adapter harness (G4 [x]와 번들 권장)"
+    - "DONE iter35: G6-PLAN.md 작성 (기존 인프라 상당 부분 발견, xunit 커버리지 부재 확인, 3-iter 로드맵)"
+    - "iter36: CarryForwardRendererTests + RollingSummaryWriterTests (순수)"
+    - "iter37: G6 [ ]→[~] 플립"
+    - "iter38: RotationSmokeRunner end-to-end 스모크 + G6 [~]→[x] 플립"
+
+parked_task_g5:
+  slug: g5-recovery-resume
+  gate: G5
+  status: "[~] partial — broker branch proven (xunit), end-to-end bundled with G4 [x] follow-up"
+  plan_doc: .autopilot/G5-PLAN.md
 
 parked_task_g4:
   slug: g4-round-trip-automated
