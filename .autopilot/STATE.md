@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 68
+iteration: 69
 status: idle-upkeep
-idle_upkeep_streak: 1  # iter68: 리뷰 대기 2건 폴링 무변경 (병행 개선 재고 없음 — B8 protected+redundant)
-next_iter_unblock_plan: iter69 — 리뷰 2건(#53 #57) 폴링 지속. 3 iter 연속 무변경이면 B10 R-BLOCKED (Brainstorm 전환) 후보. 승인 머지 시 G1 [x] flip → MVP 8/8.
+idle_upkeep_streak: 2  # iter69: 리뷰 대기 2건 여전히 무변경 · 다음 iter 3 도달
+next_iter_unblock_plan: iter70 — 폴링 지속 + 무변경 시 B10 R-BLOCKED 발효 (Brainstorm 모드 전환; 리뷰 지연 원인 탐색 + 신규 백로그 발굴). 승인 머지 시 G1 [x] flip → MVP 8/8.
 backlog: .autopilot/BACKLOG.md (B1·B2·B3·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B8 blocked)
 open_autopilot_prs: [53, 57]
 merged_since_last_iter: []
