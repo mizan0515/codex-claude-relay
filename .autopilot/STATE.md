@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 70
+iteration: 71
 status: idle-upkeep
-idle_upkeep_streak: 3  # iter70: R-REVIEW 케이스 (R-BLOCKED 대상 아님) · 브레인스톰 스냅샷 기록(B16·B17·B18 후보)
-next_iter_unblock_plan: iter71 — 폴링 지속. 운영자 승인 도착 즉시 머지 → G1 [x] flip PR 오픈 → MVP 8/8 완주. 승인 없으면 streak 4 로 idle-upkeep 유지.
+idle_upkeep_streak: 4  # iter71: R-REVIEW 지속 · 폴링 무변경 · 새 병행 후보 없음
+next_iter_unblock_plan: iter72 — 폴링 지속. 운영자 승인 도착 시 즉시 머지 → G1 [x] flip PR → MVP 8/8. R-REVIEW halt 규칙 없음(streak 무관).
 backlog: .autopilot/BACKLOG.md (B1·B2·B3·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B8 blocked)
 open_autopilot_prs: [53, 57]
 merged_since_last_iter: []
