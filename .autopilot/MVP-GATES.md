@@ -54,7 +54,7 @@ reversion is a rule break.
   tests 3 facts 추가, 전체 21/21 통과.
 
 ## G4 — One full peer round-trip automated
-- [~] Starting from a committed turn-1 (from Codex), the broker routes the
+- [x] Starting from a committed turn-1 (from Codex), the broker routes the
       handoff to Claude Code (or back to Codex), produces a turn-2 packet,
       and writes state.json `current_turn = 2`. No manual copy-paste.
 - Evidence: session directory with turn-1/2 packets + handoffs + state.json
@@ -72,6 +72,16 @@ reversion is a rule break.
   return canned `dad_handoff` JSON, proving the routing flow (not only the
   artifact emit) ends with `current_turn=2` and alternating `ActiveAgent`.
   Deferred to follow-up iter; artifact-layer evidence is sufficient for `[~]`.
+- 2026-04-19 — G4 `[~]` → `[x]`. Evidence: PR #45 (머지 74686ef).
+  `BrokerRoutingRoundTripE2ETests` 2 facts — `CannedAdapter` 쌍으로
+  `broker.AdvanceAsync` 두 번 호출: turn-1에서 Codex 어댑터가 canned
+  `dad_handoff` JSON 반환 → broker가 파싱·수락·State 갱신 → turn-2에서
+  Claude 어댑터가 또 하나의 canned handoff 반환 → 최종 `State.CurrentTurn=3`
+  + `ActiveAgent` Codex↔Claude 교대 + `Document/dialogue/sessions/{sid}/`
+  밑에 `turn-1.yaml`, `turn-2.yaml`, `turn-1-handoff.md`, `turn-2-handoff.md`,
+  `state.json`(current_turn=3, active_agent=codex) 전부 landing. Claude-first
+  대칭 테스트도 동일 결과. `BrokerCwdMutatingCollection` 도입해 CWD
+  mutating e2e 테스트 직렬화. xunit 61/61 통과.
 
 ## G5 — recovery_resume protocol
 - [~] When a turn ends with `closeout_kind: recovery_resume` (context
@@ -204,3 +214,7 @@ pointer. Never delete history lines — they are the regression audit trail.)
   HandoffEnvelope에 suggest_done/done_reason 필드 + TurnPacketAdapter 매핑
   수정 포함. 59/59 통과. 합의 수렴 시 backlog.json 실물 파일 + 두
   이벤트(session.converged, backlog.closure_written) 모두 확인.
+- 2026-04-19 — G4 `[~]` → `[x]`. Evidence: PR #45 (머지 74686ef).
+  `BrokerRoutingRoundTripE2ETests` 2 facts (Codex-first + Claude-first 대칭).
+  CannedAdapter 쌍으로 broker.AdvanceAsync 왕복 → turn-1/2.yaml + handoff.md
+  + state.json(current_turn=3, alternating ActiveAgent) 실증. 61/61 통과.

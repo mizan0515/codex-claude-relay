@@ -2,14 +2,14 @@
 
 root: .
 base: main
-iteration: 43
+iteration: 44
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter44 — G4 [~]→[x] 브로커 routing e2e (CannedAdapter 쌍 + turn-1/2.yaml + state.json + alternating ActiveAgent 증명).
+next_iter_unblock_plan: iter45 — G5 [~]→[x] recovery_resume e2e (CannedAdapter + continued_from_resume 실증).
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
-merged_since_last_iter: []
-mvp_gates: 3/8 (G2 [x], G3 [x], G7 [x], G4 [~], G5 [~], G6 [~])
+merged_since_last_iter: [45]
+mvp_gates: 4/8 (G2 [x], G3 [x], G4 [x], G7 [x], G5 [~], G6 [~])
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
 #   "핵심문서 변경만 관리자 한국어 PR 확인, 나머지는 자동 머지.
@@ -30,7 +30,7 @@ active_task:
   plan_doc: .autopilot/G-BUNDLE-PLAN.md
   plan:
     - "DONE iter43: G-BUNDLE-PLAN.md 작성 (3-iter 로드맵 · 코드 변경 없음)"
-    - "iter44: G4 [~]→[x] 브로커 routing e2e (CannedAdapter + turn yaml round-trip)"
+    - "DONE iter44: G4 [~]→[x] 브로커 routing e2e (PR #45, 74686ef · 61/61)"
     - "iter45: G5 [~]→[x] recovery_resume e2e (continued_from_resume 실증)"
     - "iter46: G6 [~]→[x] rotation smoke (summary.generated + carry-forward 주입)"
 
