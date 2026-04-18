@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 58
+iteration: 59
 status: active
 idle_upkeep_streak: 0  # iter58: B10 spec 착륙(DECISION-BLOCKED-STATE.md), 병행 개선 지속
-next_iter_unblock_plan: iter59 — PR #51 폴링 5회째 + 부속 작업. iter58 에 B10 SPEC-LANDED(`.autopilot/DECISION-BLOCKED-STATE.md` · 3 규칙 R-BLOCKED/R-REVIEW/R-DRIFT 제안 + 회고 검증). iter59 후보 — (a) `.autopilot/` open_questions 3건 중 답변 가능한 항목 audit / (b) STATE.md 의 parked_task 엔트리 정리 / (c) idle-upkeep.
+next_iter_unblock_plan: iter60 — PR #51 폴링 6회째 + 부속 작업. iter59 에 `.autopilot/OPERATOR-PENDING-INDEX.md` 착륙(4 대기 항목 한 페이지 통합). iter60 후보 — (a) STATE 의 parked_task 엔트리(g1/g4/g5) 정리 / (b) BACKLOG.md completed 구간 digest 표 / (c) open_questions 3건 응답 초안.
 backlog: .autopilot/BACKLOG.md (B2·B4·B5·B6·B7·B9·B12·B13·B13.1·B14 DONE · B11 CLOSED · B10 SPEC-LANDED · B15 IN-REVIEW · active=B1·B3·B8)
 open_autopilot_prs: [51]
 merged_since_last_iter: [50, 61a55a4]
