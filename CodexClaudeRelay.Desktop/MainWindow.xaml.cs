@@ -848,6 +848,7 @@ public partial class MainWindow : Window
         if (pendingApproval is not null)
         {
             var builder = new System.Text.StringBuilder();
+            builder.Append(CodexClaudeRelay.Core.Policy.ApprovalRiskExplainer.Render(pendingApproval));
             builder.AppendLine($"{pendingApproval.CreatedAt:HH:mm:ss} | pending | {pendingApproval.Side} | {pendingApproval.Title} | {pendingApproval.Category} | risk={pendingApproval.RiskLevel}");
             builder.AppendLine(pendingApproval.Message);
             if (RelayApprovalPolicy.TryResolveSessionDecision(state, pendingApproval, out var savedDecision, out var matchedRule) &&
