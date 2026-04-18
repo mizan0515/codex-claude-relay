@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 8
-status: active-complete
+iteration: 35
+status: halted
 active_task: null
-# Last completed: F-impl-3c part 1 (PR #9 c5bbe25) — HandoffEnvelope + HandoffJson schema gain optional `completed` and `constraints` arrays. Parser read-path and broker CompleteHandoffAsync wiring deferred to part 2. Build clean. Next: F-impl-3c part 2 (parser + broker wiring) OR F-live-1.
+# Last completed: Iter 35 auto-halt — triggered by `3 consecutive upkeep → auto-halt` rule in PROMPT.md Idle-upkeep mode block (iters 33/34/35 all upkeep with empty autopilot-reachable queue). No HALT file written (the IMMUTABLE halt block lists 5 auto-halt conditions that write HALT; 3-consecutive-upkeep is NOT one of them — it's a mutable mode-local rule, so we emit `status: halted` + LAST_HALT_NOTE without creating HALT). Operator resume path: (a) merge `[mvp-gates-scorecard-flip]` PR (flips G1/G4/G6/G7→[x], G5/G8→[~] per mvp-gates-evidence.md); (b) drop `OPERATOR: focus on <task>` sticky into STATE.md; (c) open access to UIA harness / real remote to unblock G5/G8 live halves; (d) re-fire /loop — next boot iter 36 will re-enter mode dispatch cleanly. Smoke last green on main: 34/34 PASS, Release 0/0.
 # active_task schema:
 #   slug: <kebab-case>
 #   plan: [bullet, bullet]
