@@ -37,7 +37,7 @@ reversion is a rule break.
 - Evidence: a generated handoff.md file + matching `handoff_written` log line.
 
 ## G3 — Checkpoint PASS/FAIL collection
-- [~] The broker parses `peer_review.checkpoint_results` from a turn packet
+- [x] The broker parses `peer_review.checkpoint_results` from a turn packet
       and emits a `checkpoint.verified` event per result with fields
       `{checkpoint_id, status, evidence_ref}`. Missing evidence for a
       non-PASS result blocks the turn from closing.
@@ -46,8 +46,12 @@ reversion is a rule break.
 - 2026-04-18 — G3 `[ ]` → `[~]`. Evidence: PR #33 (commit 7f0ce82).
   `CheckpointVerifier.Verify` emits `checkpoint.verified` per result +
   `checkpoint.evidence_missing` when non-PASS lacks `evidence_ref`. xunit
-  6/6 통과. Remaining for `[x]`: enforce actual block-turn-close semantic
-  in broker handoff flow (currently event-only).
+  6/6 통과.
+- 2026-04-18 — G3 `[~]` → `[x]`. Evidence: PR #34 (commit 46aaa59).
+  `HandoffEnvelope.CheckpointResults` 추가 + `CompleteHandoffAsync`가
+  State 변경 전 Verify 호출 → `BlocksTurnClose` 시 `PauseWithResultAsync`
+  로 거부, `checkpoint.evidence_missing` 이벤트 기록. TurnPacketAdapter
+  tests 3 facts 추가, 전체 21/21 통과.
 
 ## G4 — One full peer round-trip automated
 - [ ] Starting from a committed turn-1 (from Codex), the broker routes the

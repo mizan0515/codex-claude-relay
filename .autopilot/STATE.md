@@ -2,15 +2,15 @@
 
 root: .
 base: main
-iteration: 24
+iteration: 25
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter25 — G3 [x] 완성(브로커 handoff flow에서 BlocksTurnClose 실제 enforcement) 또는 G4 round-trip 착수
+next_iter_unblock_plan: iter26 — G4 round-trip 착수 (committed turn-1 → 브로커 라우팅 → turn-2 packet + state.json current_turn=2)
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
 merged_since_last_iter:
-  - "33 (G3 2/3: 브로커 hook + CheckpointVerifier xunit 6/6 + 자동 머지)"
-mvp_gates: 1/8 (G2 [x], G3 [~])
+  - "34 (G3 [x]: 증거 없는 체크포인트 턴 종료 차단 enforcement + 자동 머지)"
+mvp_gates: 2/8 (G2 [x], G3 [x])
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
 #   "핵심문서 변경만 관리자 한국어 PR 확인, 나머지는 자동 머지.
@@ -22,17 +22,17 @@ operator_directives_sticky:
   - "모든 PR 본문은 비개발자 고등학생 관리자 가독성 우선 (한국어 병기, 기술용어 최소화)"
   - "매 iter 행적은 HISTORY.md + 대시보드.md + METRICS.jsonl에 남긴다"
 
-active_task:
+active_task: null  # G3 [x] 완료; iter26에 G4로 전환
+last_completed_task:
   slug: g3-checkpoint-verified
-  pr: null (iter24에서 오픈)
-  branch: autopilot/g3-checkpoint-verified-20260418 (생성 + 푸시 완료)
-  gate: G3
-  started_iter: 22
-  plan:
-    - "DONE iter22: STATE 전환"
-    - "DONE iter23: 브랜치 생성 + TurnPacket.PeerReview 스키마 추가 + CheckpointVerifier 순수 함수 (빌드 0/0, 커밋 9e44afa)"
-    - "DONE iter24: 브로커 hook (EmitCheckpointVerifiedAsync) + xunit 6/6 facts + PR #33 자동 머지 (7f0ce82). G3 [ ]→[~]"
-    - "iter25+: G3 [x] — BlocksTurnClose 실제 enforcement (handoff flow에서 거부 경로)"
+  completed_iter: 25
+  prs: [33, 34]
+  final_commit: 46aaa59
+  plan_done:
+    - "iter22: STATE 전환"
+    - "iter23: 스키마 + CheckpointVerifier (9e44afa)"
+    - "iter24: 브로커 hook + 이벤트 + xunit 6/6 (PR #33, G3 [ ]→[~])"
+    - "iter25: HandoffEnvelope 확장 + enforcement + TurnPacketAdapter tests 3 (PR #34, G3 [~]→[x])"
 parked_task:
   slug: g1-peer-symmetric-packet-io
   reason: blocked on validator + cost-strip operator decisions
