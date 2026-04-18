@@ -2,14 +2,13 @@
 
 root: .
 base: main
-iteration: 25
+iteration: 26
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter26 — G4 round-trip 착수 (committed turn-1 → 브로커 라우팅 → turn-2 packet + state.json current_turn=2)
+next_iter_unblock_plan: iter27 — G4-PLAN step 1 (turn-packet YAML persister 순수 함수 추가)
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
-merged_since_last_iter:
-  - "34 (G3 [x]: 증거 없는 체크포인트 턴 종료 차단 enforcement + 자동 머지)"
+merged_since_last_iter: []
 mvp_gates: 2/8 (G2 [x], G3 [x])
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
@@ -22,17 +21,25 @@ operator_directives_sticky:
   - "모든 PR 본문은 비개발자 고등학생 관리자 가독성 우선 (한국어 병기, 기술용어 최소화)"
   - "매 iter 행적은 HISTORY.md + 대시보드.md + METRICS.jsonl에 남긴다"
 
-active_task: null  # G3 [x] 완료; iter26에 G4로 전환
+active_task:
+  slug: g4-round-trip-automated
+  pr: null
+  branch: null (iter27에 생성)
+  gate: G4
+  started_iter: 26
+  plan_doc: .autopilot/G4-PLAN.md
+  plan:
+    - "DONE iter26: G4-PLAN.md 작성 (현재 가진 것 vs 부족한 것 정리, 4-iter 실행 순서)"
+    - "iter27: 턴 패킷 YAML persister 순수 함수 (HandoffArtifactPersister 패턴)"
+    - "iter28: 브로커 AdvanceAsync hook + state.json 경로 확인"
+    - "iter29: 통합 스모크 테스트 (fake adapter 2개로 라운드트립)"
+    - "iter30: G4 [ ]→[~]→[x] 플립"
+
 last_completed_task:
   slug: g3-checkpoint-verified
   completed_iter: 25
   prs: [33, 34]
   final_commit: 46aaa59
-  plan_done:
-    - "iter22: STATE 전환"
-    - "iter23: 스키마 + CheckpointVerifier (9e44afa)"
-    - "iter24: 브로커 hook + 이벤트 + xunit 6/6 (PR #33, G3 [ ]→[~])"
-    - "iter25: HandoffEnvelope 확장 + enforcement + TurnPacketAdapter tests 3 (PR #34, G3 [~]→[x])"
 parked_task:
   slug: g1-peer-symmetric-packet-io
   reason: blocked on validator + cost-strip operator decisions
