@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 37
+iteration: 38
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter38 — G7(consensus convergence) 계획 문서, 또는 G8(audit log integrity) 조사. G4/G5/G6 [x] 번들 follow-up은 별도 큰 iter로 보류.
+next_iter_unblock_plan: iter39 — G7 step 1/4: ConvergenceDetector 순수 함수 + RelaySessionStatus.Converged enum 추가 + xunit 4-5 facts.
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
 merged_since_last_iter: []
@@ -22,17 +22,24 @@ operator_directives_sticky:
   - "매 iter 행적은 HISTORY.md + 대시보드.md + METRICS.jsonl에 남긴다"
 
 active_task:
-  slug: g6-rolling-summary
+  slug: g7-consensus-convergence
   pr: null
-  branch: null (iter36에 생성)
-  gate: G6
-  started_iter: 35
-  plan_doc: .autopilot/G6-PLAN.md
+  branch: null
+  gate: G7
+  started_iter: 38
+  plan_doc: .autopilot/G7-PLAN.md
   plan:
-    - "DONE iter35: G6-PLAN.md 작성 (기존 인프라 상당 부분 발견, xunit 커버리지 부재 확인, 3-iter 로드맵)"
-    - "DONE iter36: CarryForwardRendererTests 4 + RollingSummaryWriterTests 4 facts (PR #40, f6f2263)"
-    - "DONE iter37: G6 [ ]→[~] 플립 (MVP-GATES.md 증거 스택 + G6-PLAN.md follow-up)"
-    - "iter38+: G6 [~]→[x] — RotationSmokeRunner 기반 e2e (G4/G5와 번들 가능)"
+    - "DONE iter38: G7-PLAN.md 작성 (기존 필드/라이터 인프라 확인, 4-iter 로드맵)"
+    - "iter39: ConvergenceDetector 순수 함수 + RelaySessionStatus.Converged enum + 4-5 facts"
+    - "iter40: BacklogClosureWriter 순수 render + atomic WriteAsync + 3 facts"
+    - "iter41: 브로커 wiring + session.converged 이벤트 + G7 [ ]→[~] 플립"
+    - "iter42: fake-adapter e2e 스모크 + [~]→[x] 플립"
+
+parked_task_g6:
+  slug: g6-rolling-summary
+  gate: G6
+  status: "[~] partial — xunit coverage green, end-to-end rotation smoke bundle-candidate with G4/G5 [x]"
+  plan_doc: .autopilot/G6-PLAN.md
 
 parked_task_g5:
   slug: g5-recovery-resume
