@@ -2,13 +2,13 @@
 
 root: .
 base: main
-iteration: 62
+iteration: 63
 status: active
-idle_upkeep_streak: 0  # iter62: G1 스프린트 1단계 완료 — PR #52 MERGED (PacketIO round-trip)
-next_iter_unblock_plan: iter63 — G1 스프린트 2단계. validator 포팅 (b) — `D:\dad-v2-system-template\{en,ko}\tools\Validate-Dad*.ps1` 스크래핑 → `tools/Validate-Dad-Packet.ps1` 착륙 (protected → 한국어 PR · 관리자 리뷰 필수). 이후 (3) B3 AgentCostAdvisor 대칭화, (4) CLAUDE.md 서두 정정.
+idle_upkeep_streak: 0  # iter63: G1 스프린트 2단계 — PR #53 open (validator, 리뷰대기)
+next_iter_unblock_plan: iter64 — PR #53 리뷰 대기 중 병행 개선. G1 스프린트 3단계(B3 AgentCostAdvisor 대칭화 · Core 내부 · 자동 머지 후보) 착수. 그 뒤 4단계(CLAUDE.md 서두 정정 · protected · 관리자 리뷰).
 backlog: .autopilot/BACKLOG.md (B1·B2·B4·B5·B6·B7·B9·B12·B13·B13.1·B14·B15 DONE · B11 CLOSED · B10 SPEC-LANDED · active=B3·B8)
-open_autopilot_prs: []
-merged_since_last_iter: [52, 5e916d6]
+open_autopilot_prs: [53]
+merged_since_last_iter: []
 mvp_gates: 7/8 (G2·G3·G4·G5·G6·G7·G8 [x]); G1 op-blocked
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
