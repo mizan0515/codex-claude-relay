@@ -2,10 +2,10 @@
 
 root: .
 base: main
-iteration: 50
+iteration: 51
 status: active
-idle_upkeep_streak: 1
-next_iter_unblock_plan: iter51 — MVP 7/8 유지. G1 운영자 3-결정 여전히 블록. iter50 에서 BACKLOG 재스코어링 + B11~B15 brainstorm 완료. iter51 후보 — (a) B12 G1-UNBLOCKING-RUNBOOK.md 작성(non-protected, 운영자 readability 개선) / (b) B11 EventHashStamper 순수 리팩터(non-protected, RelayBroker.cs) / (c) B15 flip-history digest(.autopilot/MVP-GATES.md 는 protected 이므로 PR 필수). 운영자 지시 도착 시 G1 즉시 재개.
+idle_upkeep_streak: 2
+next_iter_unblock_plan: iter52 — MVP 7/8 유지. iter51 에 B12 G1-UNBLOCKING-RUNBOOK.md 착륙(non-protected 직접 main). iter52 후보 — (a) B11 EventHashStamper 순수 리팩터(RelayBroker.cs 55개 호출부 consolidation, non-protected) / (b) B13 METRICS 히스토그램(대시보드 하단 ASCII) / (c) B14 tools/smoke ADR(.autopilot/ADR-TOOLS-SMOKE-NEED.md). 운영자 3-결정 도착 시 G1 즉시 재개.
 backlog: .autopilot/BACKLOG.md (iter50 재작성: B2·B4·B5·B6·B7·B9 Completed · active=B1·B3·B10·B8 · 신규 brainstorm B11~B15)
 open_autopilot_prs: []
 merged_since_last_iter: [50, 61a55a4]
