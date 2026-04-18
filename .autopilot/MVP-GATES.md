@@ -21,7 +21,7 @@ rule break.
 ---
 
 ## G1 — Build is green end-to-end
-- [ ] `powershell -File .autopilot/project.ps1 test` exits 0 on a clean checkout, zero
+- [x] `powershell -File .autopilot/project.ps1 test` exits 0 on a clean checkout, zero
       `error CS*` lines in output. Release config. All four projects compile:
       `CodexClaudeRelay.Core`, `CodexClaudeRelay.Desktop`, `CodexClaudeRelay.CodexProtocol`,
       `CodexClaudeRelay.CodexProtocol.Spike`.
@@ -41,20 +41,20 @@ rule break.
       in order, no `session.orphaned` event.
 
 ## G4 — Approval-first gate on destructive op
-- [ ] Running a scenario that triggers a destructive-tier shell command (e.g.
+- [x] Running a scenario that triggers a destructive-tier shell command (e.g.
       `drive-destructive-qa.ps1` scenario 5/6) surfaces the approval UI; Deny blocks the
       command; Approve Once lets one through without elevating session policy.
 - Evidence: `drive-destructive-qa.ps1` run tail showing deny path + approve-once path,
       plus UI screenshot of approval panel.
 
 ## G5 — Handoff parse + repair loop
-- [ ] A malformed handoff output triggers `BuildInteractiveRepairPrompt`; a repaired
+- [~] A malformed handoff output triggers `BuildInteractiveRepairPrompt`; a repaired
       handoff lands as `handoff.accepted` with `ready=true` and no
       `previous_invalid_output` field (E-spec-2).
 - Evidence: `logs/*.jsonl` lines `handoff.rejected` → repair prompt → `handoff.accepted`.
 
 ## G6 — Rolling summary written durably (F-impl-1)
-- [ ] `RelayBroker.RotateSessionAsync` writes a markdown summary to
+- [x] `RelayBroker.RotateSessionAsync` writes a markdown summary to
       `%LocalAppData%\CodexClaudeRelayMvp\summaries\{sessionId}-segment-{n}.md` BEFORE per-rotation
       state reset. `summary.generated` emitted with bytes + cost fields. IO failure emits
       `summary.failed` and does not crash the broker.
@@ -62,7 +62,7 @@ rule break.
       log line.
 
 ## G7 — Carry-forward injected into next turn (F-impl-2 + F-impl-3)
-- [ ] `RelaySessionState` populates `Goal`/`Completed`/`Pending`/`Constraints`/
+- [x] `RelaySessionState` populates `Goal`/`Completed`/`Pending`/`Constraints`/
       `LastHandoffHash` (from `HandoffParser.ComputeCanonicalHash` at
       `CompleteHandoffAsync`). `RelayPromptBuilder` emits a `## Carry-forward` section
       into the prompt on the post-rotation turn and emits `summary.loaded`.
@@ -70,7 +70,7 @@ rule break.
       `summary.loaded` line.
 
 ## G8 — Rotation live exercise crossing MaxTurnsPerSession (F-live-1)
-- [ ] Live run crosses the rotation threshold, carry-forward is visible in the next
+- [~] Live run crosses the rotation threshold, carry-forward is visible in the next
       session's first turn, operator can export diagnostics, no orphan approvals, no
       `session.lost` event. Destructive-tier ops still gated across the boundary.
 - Evidence: full session jsonl spanning the rotation + diagnostics export zip pointer.
@@ -83,3 +83,4 @@ rule break.
 Never delete history lines — they are the regression audit trail.)
 
 - 2026-04-18 — scaffolded, all gates `[ ]`.
+- 2026-04-18 — G1/G4/G6/G7 → [x], G5/G8 → [~]. Evidence: mvp-gates-evidence.md. Commits: PR #17/#18/#19/#20.
