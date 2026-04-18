@@ -27,7 +27,7 @@ reversion is a rule break.
 
 | Gate | 현재 | 최신 flip (ISO·PR·commit) | 근거 한 줄 |
 |------|------|--------------------------|-----------|
-| G1 | `[ ]` | — | 운영자 3-결정 대기(`.autopilot/G1-UNBLOCKING-RUNBOOK.md`) |
+| G1 | `[x]` | 2026-04-19 | PR #52·#53·#55·#56·#57 — peer-symmetric packet I/O 전체 착륙 |
 | G2 | `[x]` | 2026-04-18 · PR #31 · 6970c43 | `RelayBroker.CompleteHandoffAsync` → `HandoffArtifactPersister` 배선 + 3 xunit |
 | G3 | `[x]` | 2026-04-18 · PR #34 · 46aaa59 | 증거 없는 체크포인트 턴 차단 enforcement + 21 xunit |
 | G4 | `[x]` | 2026-04-19 · PR #45 · 74686ef | `BrokerRoutingRoundTripE2ETests` 2 facts · turn-1/2.yaml + state.json landing |
@@ -36,17 +36,28 @@ reversion is a rule break.
 | G7 | `[x]` | 2026-04-18 · PR #44 · 26949eb | `BrokerConvergenceE2ETests` 2 facts · backlog.json + 2 이벤트 |
 | G8 | `[x]` | 2026-04-19 · PR #50 · 769274a | `BrokerReplayDedupE2ETests` 2 facts · Duplicate handoff 거부 + crash-survival |
 
-**MVP 진행**: **7/8** · 남은 G1 만 운영자 결정 대기. 테스트: **81/81** · 누적 머지: **23건**.
+**MVP 진행**: **8/8** 🎉 · 모든 게이트 완주. 테스트: **96/96** · 누적 머지: **30건**.
 
 ---
 
 ## G1 — Peer-symmetric packet I/O
-- [ ] Broker can read and write `turn-{N}.yaml` conforming to
+- [x] Broker can read and write `turn-{N}.yaml` conforming to
       `Document/DAD/PACKET-SCHEMA.md` with fields: `type`, `from`,
       `contract`, `peer_review`, `my_work`, `handoff`. Must round-trip
       without loss for both `from: codex` and `from: claude-code`.
 - Evidence: a live turn-1.yaml + turn-2.yaml pair that pass
-  `tools/Validate-DadPacket.ps1` and have symmetric structure.
+  `tools/Validate-Dad-Packet.ps1` and have symmetric structure.
+- 2026-04-19 — G1 `[ ]` → `[x]`. Evidence stack (iter61~iter93, 관리자 3-결정 승인 경로):
+  · PR #52 (iter62, commit 73c9b0b) — `CodexClaudeRelay.Core/Protocol/PacketIO.cs`
+    신규 + xunit round-trip facts (codex ↔ claude-code 대칭, 무손실).
+  · PR #53 (iter92, commit 96421a2) — `tools/Validate-Dad-Packet.ps1` 착륙
+    (en/ko DAD-v2 템플릿 스크래핑, iter61 operator 결정 b).
+  · PR #55·#56 (iter65~66, commits 550934d·22aecae) — B3 AgentCostAdvisor
+    대칭화 (IBrokerCostContext 시암 + 등록기 pair-constructor,
+    iter61 operator 결정 e). RelayBroker.cs -83 LOC.
+  · PR #57 (iter93, commit f200e8e) — `CLAUDE.md` 서두 ~20줄 v2 피어
+    대칭 언어로 정정 (iter61 operator "승인"). 문서-코드 링크 확립.
+  · Test suite: 96/96 통과 on main, 누적 머지 **30건**.
 
 ## G2 — Handoff artifact generation
 - [x] When a turn closes with `handoff.closeout_kind: peer_handoff`, the
