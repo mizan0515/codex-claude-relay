@@ -126,7 +126,7 @@ reversion is a rule break.
   headless 구동시켜 xunit으로 래핑하면 scope ≈100 LOC.
 
 ## G7 — Consensus convergence closeout
-- [~] When both peers mark `handoff.ready_for_peer_verification: true` AND
+- [x] When both peers mark `handoff.ready_for_peer_verification: true` AND
       `handoff.suggest_done: true` in consecutive turns with matching
       `checkpoint_results`, the broker seals the session as `converged` in
       state.json and links it in `Document/dialogue/backlog.json`.
@@ -154,6 +154,22 @@ reversion is a rule break.
   `session_status: converged`/`closed_by_session_id` 채워짐 + 이벤트 로그에
   `session.converged` + `backlog.closure_written` 모두 존재함을 assert.
   Scope ≈150 LOC. 다음 iter42에서 수행.
+- 2026-04-18 — G7 `[~]` → `[x]`. Evidence stack:
+  · PR #44 (머지 커밋 26949eb) — `BrokerConvergenceE2ETests` 2 facts:
+    (a) Codex→Claude 순서의 convergent handoff 한 쌍을 broker
+    `CompleteHandoffAsync`로 흘린 뒤 `State.Status=Converged` +
+    `session.converged` + `backlog.closure_written` 이벤트 + 실제
+    `Document/dialogue/backlog.json` 파일에 `session_id`,
+    `session_status: converged`, `closed_by_session_id`, `converged_turn: 2`
+    모두 기록 확인. (b) Claude→Codex 역순 동일 결과 (피어 대칭성).
+  · 동 PR 부수 수정: iter41 배선에서 누락 발견된 필드 보강 —
+    `HandoffEnvelope`에 `suggest_done` / `done_reason` JSON 필드 추가 +
+    `TurnPacketAdapter.FromHandoffEnvelope`에서 `TurnHandoff.SuggestDone` /
+    `DoneReason` 매핑. 이 수정이 없으면 detector는 영원히 발화 불가
+    (합의 판정 핵심 조건 중 하나였음).
+  · Test suite: 59/59 통과 on main (57 + 신규 2).
+  · Remaining-for-`[x]` 조건 전부 충족: broker Advance 사이클 끝에
+    Converged 상태 + backlog.json 실물 + 두 이벤트 모두 assert됨.
 
 ## G8 — Audit log integrity
 - [ ] Every turn packet I/O, handoff artifact write, and state transition
@@ -183,3 +199,8 @@ pointer. Never delete history lines — they are the regression audit trail.)
   `handoff_write_failed` on exception. Artifact lands at
   `Document/dialogue/sessions/{sid}/turn-{N}-handoff.md`.
   Core tests: 3 new + 9 existing = 12/12 green (565 ms).
+- 2026-04-18 — G7 `[~]` → `[x]`. Evidence: PR #44 (머지 26949eb).
+  `BrokerConvergenceE2ETests` 2 facts (Codex→Claude / Claude→Codex 대칭).
+  HandoffEnvelope에 suggest_done/done_reason 필드 + TurnPacketAdapter 매핑
+  수정 포함. 59/59 통과. 합의 수렴 시 backlog.json 실물 파일 + 두
+  이벤트(session.converged, backlog.closure_written) 모두 확인.

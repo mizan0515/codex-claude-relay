@@ -2,14 +2,14 @@
 
 root: .
 base: main
-iteration: 41
+iteration: 42
 status: active
 idle_upkeep_streak: 0
-next_iter_unblock_plan: iter42 — G7 step 4/4: fake-adapter e2e 스모크 → State.Status=Converged + backlog.json 실물 + session.converged 이벤트 + G7 [~]→[x] 플립.
+next_iter_unblock_plan: iter43 — G8 (audit log integrity) 계획 수립 OR G4/G5/G6 [x] 번들 follow-up (fake-adapter harness 공유).
 backlog: .autopilot/BACKLOG.md (10 candidates; B2 DONE, B1+B3 op-blocked, B4-B10 available)
 open_autopilot_prs: []
-merged_since_last_iter: []
-mvp_gates: 2/8 (G2 [x], G3 [x], G4 [~], G5 [~], G6 [~], G7 [~])
+merged_since_last_iter: [44]
+mvp_gates: 3/8 (G2 [x], G3 [x], G7 [x], G4 [~], G5 [~], G6 [~])
 
 # 영구 OPERATOR 지시 (2026-04-18 chat) — 모든 future iter 준수:
 #   "핵심문서 변경만 관리자 한국어 PR 확인, 나머지는 자동 머지.
@@ -22,18 +22,21 @@ operator_directives_sticky:
   - "매 iter 행적은 HISTORY.md + 대시보드.md + METRICS.jsonl에 남긴다"
 
 active_task:
-  slug: g7-consensus-convergence
+  slug: null
   pr: null
   branch: null
-  gate: G7
-  started_iter: 38
-  plan_doc: .autopilot/G7-PLAN.md
+  gate: null
+  started_iter: null
+  plan_doc: null
   plan:
-    - "DONE iter38: G7-PLAN.md 작성 (기존 필드/라이터 인프라 확인, 4-iter 로드맵)"
-    - "DONE iter39: ConvergenceDetector 순수 함수 + RelaySessionStatus.Converged enum + 7 facts (PR #41, 32ee1f0)"
-    - "DONE iter40: BacklogClosureWriter 순수 render + atomic WriteAsync + 5 facts (PR #42, b602980)"
-    - "DONE iter41: 브로커 wiring + session.converged 이벤트 + G7 [ ]→[~] 플립 (PR #43, 6461d7c)"
-    - "iter42: fake-adapter e2e 스모크 + [~]→[x] 플립"
+    - "iter43: G8 audit log integrity 계획 OR G4/G5/G6 [x] 번들 follow-up 선정"
+
+last_completed_task_g7:
+  slug: g7-consensus-convergence
+  completed_iter: 42
+  prs: [41, 42, 43, 44]
+  final_commit: 26949eb
+  plan_doc: .autopilot/G7-PLAN.md
 
 parked_task_g6:
   slug: g6-rolling-summary
