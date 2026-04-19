@@ -1,33 +1,56 @@
-# Source Repo Rules
+# Project Rules
 
-This root directory is the **template source repository**, not a project runtime root.
+This repository is the **DAD-v2 peer-symmetric relay** — a C# .NET bridge
+between Codex and Claude Code agents. It is **not** a template source
+repository, and it does not ship `en/` or `ko/` runtime variants.
 
 ## Source Of Truth
 
-1. Root maintainer files in this directory govern source-repo maintenance:
-   - `README.md`
-   - `PROJECT-RULES.md`
+1. The following root files govern this repo's contract:
+   - `README.md` (when present — current repo has none; see `.autopilot/PROMPT.md` instead)
+   - `PROJECT-RULES.md` (this file)
    - `AGENTS.md`
    - `CLAUDE.md`
    - `DIALOGUE-PROTOCOL.md`
-   - `tools/Validate-TemplateVariants.ps1`
-   - `.githooks/pre-commit`
-2. Variant runtime contracts live under `en/` and `ko/`.
-3. When a rule for the source repo conflicts with a rule inside a variant, preserve source-repo parity first, then update both variants coherently.
+   - `.autopilot/PROMPT.md` (IMMUTABLE blocks define the charter)
+   - `.githooks/pre-commit` + `.githooks/commit-msg` (protect charter & trailers)
+2. DAD-v2 protocol reference specs live under `Document/DAD/`.
+3. The external reference repo `D:\dad-v2-system-template` (separate project)
+   hosts `en/` and `ko/` DAD-v2 variants. That repo is a **read-only
+   protocol spec reference**, not a target this relay writes to.
 
-## Maintainer Reality
+## Peer Reality
 
-- The source repo ships two functionally equivalent variants: `en/` and `ko/`.
-- Changes to shared DAD behavior must be reflected in both variants unless the difference is intentionally language-only.
-- Root maintenance is complete only after variant parity and validator parity are both re-verified.
+- Codex and Claude Code are equal peers. Every adapter, cost advisor, and
+  policy must be expressible with interchangeable agent identifiers.
+- No role-conditional branches that exist on only one side
+  (see `Policy/IAgentCostAdvisor.cs`).
+- Shared behavior changes (docs, code, tests, prompts) must preserve
+  peer symmetry; language-only differences are the only allowed asymmetry
+  and must be called out explicitly.
 
 ## Required Maintainer Checks
 
-- Run `powershell -ExecutionPolicy Bypass -File tools/Validate-TemplateVariants.ps1 -RunVariantValidators` before closing source-repo changes.
-- Treat a root-only change as incomplete if it affects variant docs, tools, hooks, prompts, or skill metadata and the corresponding variant updates are missing.
+Before closing a meaningful change:
+
+1. `dotnet build CodexClaudeRelay.sln` — green.
+2. `dotnet test CodexClaudeRelay.sln` — green.
+3. `powershell -ExecutionPolicy Bypass -File tools/Validate-Dad-Packet.ps1`
+   against any session artifacts you produced.
+4. `.autopilot/project.ps1 doctor` — green (verifies solution layout +
+   hooks installation).
+
+Treat a change as incomplete if it touches contract docs, hooks, prompts,
+or IMMUTABLE blocks without the corresponding policy trailer
+(`MISSION-AMEND:`, `IMMUTABLE-ADD:`, `cleanup-operator-approved:`).
 
 ## Guardrails
 
-- Do not treat this root directory as a live DAD session workspace.
-- Do not add runtime-only files such as root `Document/dialogue/state.json` here.
-- Keep frequently read root docs thin; move detailed operational rules into the variants.
+- Do **not** resurrect `en/` / `ko/` variant scaffolding into this root —
+  that's the template repo's job.
+- Do **not** introduce asymmetric role-conditional logic without a peer
+  equivalent.
+- Do **not** bypass hooks with `--no-verify` outside an explicit operator
+  directive recorded in `STATE.md`.
+- Keep frequently read root docs thin; move detailed protocol references
+  into `Document/DAD/`.

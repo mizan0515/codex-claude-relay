@@ -1,33 +1,22 @@
-=== SUPERSEDED 2026-04-18 ===
+=== SUPERSEDED ===
 
-This 1,400-line paste-blob has been replaced by the `.autopilot/` layout.
+This paste-blob has been replaced by the `.autopilot/` layout.
 
-To advance one iteration of the loop:
-  1. Open:   prototypes/relay-app-mvp/.autopilot/RUN.txt
-  2. Copy:   entire contents
-  3. Paste:  into Claude Code
+To advance one iteration of the loop, read:
 
-The canonical prompt, IMMUTABLE charter, mode-dispatch, MVP gates, and cleanup safety
-invariants now live in the sibling .autopilot/ files:
+  .autopilot/PROMPT.md    — canonical prompt (submit verbatim to the agent)
+  .autopilot/STATE.md     — live iteration state
+  .autopilot/MVP-GATES.md — observable completion scorecard
 
-  .autopilot/PROMPT.md              — the prompt itself (read by the AI each iteration)
-  .autopilot/RUN.txt                — the operator's copy-paste launcher
-  .autopilot/STATE.md               — live state (iter, status, active_task, overrides)
-  .autopilot/MVP-GATES.md           — observable completion scorecard (8 gates)
-  .autopilot/CLEANUP-CANDIDATES.md  — staleness worklist (Phase A)
-  .autopilot/CLEANUP-LOG.md         — deletion audit trail (Phase B)
-  .autopilot/hooks/                 — pre-commit + commit-msg enforcement
-  .autopilot/project.ps1            — operator wrapper (doctor/test/audit/install-hooks/start)
+Operator dashboard (read this first each day):
+
+  .autopilot/대시보드.md
 
 Install hooks (one-time, from repo root):
-  powershell -File prototypes/relay-app-mvp/.autopilot/project.ps1 install-hooks
 
-Rationale for the move: the loop needs stateful sentinel files (MVP gates, PITFALLS,
-METRICS, cleanup log) and a mechanically-enforced charter (IMMUTABLE blocks with hook
-protection). A single paste-blob could do neither. The previous prompt had no way to
-reject a self-modification that silently loosened its own constraints; the new layout
-does, via .autopilot/hooks/protect.sh + commit-msg-protect.sh.
+  .autopilot/project.ps1 install-hooks
 
-The historical contents of this file are preserved in the DEV-PROGRESS-ARCHIVE.md
-pointers and in git history. This stub prevents anyone from pasting the stale prompt
-by accident.
+The previous stub referenced `prototypes/relay-app-mvp/.autopilot/RUN.txt`,
+which never existed in this repo layout. That pointer is removed.
+
+Historical context is preserved in git history and .autopilot/HISTORY.md.
