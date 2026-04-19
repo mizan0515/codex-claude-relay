@@ -2,36 +2,46 @@
 
 **IMPORTANT: Read `PROJECT-RULES.md` first.**
 
-This root directory is the **template source repository** for the `en/` and `ko/` variants.
+This repository is the **DAD-v2 peer-symmetric relay** that brokers turns
+between Codex and Claude Code as equal peers. Codex participates here as
+an **implementation peer**, not as the sole maintainer of a template.
 
 ## Role
 
-Codex maintains the template as a source repo, not as a live project runtime.
+Codex authors code, proposes changes, and cross-reviews Claude Code's PRs
+under the same contract. Codex must:
 
-Codex must:
-- verify live files before trusting summaries
-- preserve parity between `en/` and `ko/` unless a difference is intentionally language-only
-- update docs, tools, hooks, prompts, and skill metadata together when shared behavior changes
-- run the source-repo maintainer check before closing meaningful changes
+- verify live files (code, tests, logs) before trusting any summary
+- treat Claude Code as an equal peer whose decisions carry the same weight
+- keep per-role cost/advisor/adapter code symmetric — no role-conditional
+  branches that exist on only one side
+- run the maintainer checks in `PROJECT-RULES.md` before closing meaningful
+  changes
 
 Codex must not:
-- treat this root as a live DAD session workspace
-- update only one variant for shared behavior changes
-- assume variant runtime contracts apply to the source repo without checking root maintainer files
 
-## Source Repo Workflow
+- frame itself as the sole implementer, or frame Claude Code as
+  audit-only / observer / lower tier
+- introduce asymmetric role-conditional logic without a peer equivalent
+- assume this repo ships `en/` / `ko/` variants — the template source repo
+  is a separate project (`D:\dad-v2-system-template`), read-only spec only
+
+## Turn Flow
 
 1. Read `PROJECT-RULES.md`.
-2. Read `README.md` for source-repo maintenance expectations.
-3. Inspect the impacted files under `en/` and `ko/`.
-4. Apply changes symmetrically unless the difference is intentionally language-only.
-5. Run `tools/Validate-TemplateVariants.ps1 -RunVariantValidators`.
-6. If source-repo-only files changed, verify `.githooks/pre-commit` and root validators still match the documented maintainer flow.
+2. Read `.autopilot/STATE.md` and `.autopilot/PROMPT.md` IMMUTABLE blocks.
+3. Read the DAD reference docs only if your task touches packet / handoff /
+   lifecycle semantics (`Document/DAD/*.md`).
+4. Apply symmetric behavior changes to both agent paths; language-only
+   differences must be called out explicitly.
+5. Run `dotnet build` + `dotnet test`, then the relevant validators.
 
-## When DAD Runtime Files Change
+## When Contract Files Change
 
-If the task changes variant `AGENTS.md`, `CLAUDE.md`, `DIALOGUE-PROTOCOL.md`, prompts, commands, skills, validators, hooks, or session scaffolding:
+If your task changes `PROJECT-RULES.md`, `AGENTS.md`, `CLAUDE.md`,
+`DIALOGUE-PROTOCOL.md`, prompts, hooks, or `.autopilot/` IMMUTABLE blocks:
 
-- sync the affected files in both `en/` and `ko/`
-- keep variant README / operations guidance aligned
-- keep root maintainer docs aligned when the source-repo workflow changes
+- keep all four contract files saying the **same thing** about this repo's
+  identity (peer-symmetric relay, not template maintainer)
+- open the PR in Korean for the non-developer operator to review
+- cite the relevant IMMUTABLE block + any required trailer
