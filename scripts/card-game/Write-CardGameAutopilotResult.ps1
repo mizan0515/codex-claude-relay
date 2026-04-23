@@ -239,7 +239,46 @@ function Get-ResultBullets {
   )
 }
 
+function Get-RelayEvidence {
+  param(
+    [string]$TargetSessionId
+  )
+
+  $appDataDir = Join-Path $env:LOCALAPPDATA 'CodexClaudeRelayMvp'
+  $eventLogPath = Join-Path $appDataDir "logs\$TargetSessionId.jsonl"
+  if (-not (Test-Path -LiteralPath $eventLogPath)) {
+    return [pscustomobject]@{
+      mcp_calls = 0
+      unity_mcp_calls = 0
+      event_log_path = ''
+    }
+  }
+
+  $mcpCalls = 0
+  $unityMcpCalls = 0
+  foreach ($line in Get-Content -LiteralPath $eventLogPath -Encoding UTF8) {
+    if ($line -match 'aggregated_output' -or $line -match 'command_execution') {
+      continue
+    }
+
+    if ($line -match 'mcp__') {
+      $mcpCalls++
+    }
+
+    if ($line -match 'mcp__unityMCP__') {
+      $unityMcpCalls++
+    }
+  }
+
+  return [pscustomobject]@{
+    mcp_calls = $mcpCalls
+    unity_mcp_calls = $unityMcpCalls
+    event_log_path = $eventLogPath
+  }
+}
+
 $learning = Get-LearningRecordForSession -Path $LearningRecordPath -TargetSessionId $sessionId
+$relayEvidence = Get-RelayEvidence -TargetSessionId $sessionId
 $stateLines = New-Object System.Collections.Generic.List[string]
 foreach ($line in (Get-Content -LiteralPath $stateMdPath -Encoding UTF8)) {
   $stateLines.Add($line)
@@ -283,7 +322,7 @@ $metrics = [ordered]@{
   duration_s = 0
   files_read = 0
   bash_calls = 0
-  mcp_calls = 0
+  mcp_calls = $relayEvidence.mcp_calls
   commits = 0
   prs = 0
   merged = 0
@@ -300,6 +339,8 @@ $metrics = [ordered]@{
   relay_cache_read_tokens = if ($learning) { $learning.total_cache_read_input_tokens } else { 0 }
   relay_cost_claude_usd = if ($learning) { $learning.total_cost_claude_usd } else { 0 }
   relay_cost_codex_usd = if ($learning) { $learning.total_cost_codex_usd } else { 0 }
+  relay_unity_mcp_calls = $relayEvidence.unity_mcp_calls
+  relay_event_log_path = $relayEvidence.event_log_path
 }
 
 if ($WhatIf) {
