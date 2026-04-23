@@ -34,6 +34,8 @@ if (-not $LearningRecordPath) {
   $LearningRecordPath = Join-Path $dialogueRoot 'learning-memory\session-outcomes.jsonl'
 }
 
+$relayEvidenceScriptPath = Join-Path $PSScriptRoot 'Get-CardGameRelayEvidence.ps1'
+
 if (-not (Test-Path -LiteralPath $SessionStatePath)) {
   throw "Session state not found: $SessionStatePath"
 }
@@ -239,46 +241,7 @@ function Get-ResultBullets {
   )
 }
 
-function Get-RelayEvidence {
-  param(
-    [string]$TargetSessionId
-  )
-
-  $appDataDir = Join-Path $env:LOCALAPPDATA 'CodexClaudeRelayMvp'
-  $eventLogPath = Join-Path $appDataDir "logs\$TargetSessionId.jsonl"
-  if (-not (Test-Path -LiteralPath $eventLogPath)) {
-    return [pscustomobject]@{
-      mcp_calls = 0
-      unity_mcp_calls = 0
-      event_log_path = ''
-    }
-  }
-
-  $mcpCalls = 0
-  $unityMcpCalls = 0
-  foreach ($line in Get-Content -LiteralPath $eventLogPath -Encoding UTF8) {
-    if ($line -match 'aggregated_output' -or $line -match 'command_execution') {
-      continue
-    }
-
-    if ($line -match 'mcp__') {
-      $mcpCalls++
-    }
-
-    if ($line -match 'mcp__unityMCP__') {
-      $unityMcpCalls++
-    }
-  }
-
-  return [pscustomobject]@{
-    mcp_calls = $mcpCalls
-    unity_mcp_calls = $unityMcpCalls
-    event_log_path = $eventLogPath
-  }
-}
-
 $learning = Get-LearningRecordForSession -Path $LearningRecordPath -TargetSessionId $sessionId
-$relayEvidence = Get-RelayEvidence -TargetSessionId $sessionId
 $stateLines = New-Object System.Collections.Generic.List[string]
 foreach ($line in (Get-Content -LiteralPath $stateMdPath -Encoding UTF8)) {
   $stateLines.Add($line)
@@ -313,6 +276,35 @@ $newSection = [pscustomobject]@{
   Bullets = $resultBullets
 }
 $updatedSections = @($newSection) + @($historySections | Select-Object -First 9)
+$relayEvidence = $null
+if (Test-Path -LiteralPath $relayEvidenceScriptPath) {
+  try {
+    $relayEvidence = & powershell -ExecutionPolicy Bypass -File $relayEvidenceScriptPath -CardGameRoot $CardGameRoot -SessionId $sessionId | ConvertFrom-Json
+  } catch {
+    $relayEvidence = $null
+  }
+}
+
+$relayMcpCalls = 0
+$relayUnityMcpCalls = 0
+$relayEventLogPath = ''
+if ($relayEvidence) {
+  if ($relayEvidence.PSObject.Properties.Name -contains 'mcp_calls_observed') {
+    $relayMcpCalls = [int]$relayEvidence.mcp_calls_observed
+  } elseif ($relayEvidence.PSObject.Properties.Name -contains 'tool_events_observed') {
+    $relayMcpCalls = [int]$relayEvidence.tool_events_observed
+  }
+
+  if ($relayEvidence.PSObject.Properties.Name -contains 'unity_mcp_calls_observed') {
+    $relayUnityMcpCalls = [int]$relayEvidence.unity_mcp_calls_observed
+  } elseif ($relayEvidence.PSObject.Properties.Name -contains 'unity_mcp_calls') {
+    $relayUnityMcpCalls = [int]$relayEvidence.unity_mcp_calls
+  }
+
+  if ($relayEvidence.PSObject.Properties.Name -contains 'event_log_path') {
+    $relayEventLogPath = [string]$relayEvidence.event_log_path
+  }
+}
 
 $metrics = [ordered]@{
   iter = $nextIteration
@@ -322,7 +314,8 @@ $metrics = [ordered]@{
   duration_s = 0
   files_read = 0
   bash_calls = 0
-  mcp_calls = $relayEvidence.mcp_calls
+  mcp_calls = $relayMcpCalls
+  unity_mcp_calls = $relayUnityMcpCalls
   commits = 0
   prs = 0
   merged = 0
@@ -339,8 +332,8 @@ $metrics = [ordered]@{
   relay_cache_read_tokens = if ($learning) { $learning.total_cache_read_input_tokens } else { 0 }
   relay_cost_claude_usd = if ($learning) { $learning.total_cost_claude_usd } else { 0 }
   relay_cost_codex_usd = if ($learning) { $learning.total_cost_codex_usd } else { 0 }
-  relay_unity_mcp_calls = $relayEvidence.unity_mcp_calls
-  relay_event_log_path = $relayEvidence.event_log_path
+  relay_unity_mcp_calls = $relayUnityMcpCalls
+  relay_event_log_path = $relayEventLogPath
 }
 
 if ($WhatIf) {

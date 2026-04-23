@@ -15,5 +15,8 @@ Operating rules:
 - Do not mark progress complete without inspectable evidence.
 - If the task touches scripts in a folder, update the matching `*-research.md`.
 - Treat `.autopilot`, `Document/dialogue`, and protected contract docs as governed assets.
+- If the slice needs live Unity verification, prefer Unity MCP for scene refresh, console checks, QA menu execution, screenshots, and focused tests before falling back to raw editor guessing.
+- Good Unity MCP candidate work: `refresh_unity`, `read_console`, `execute_menu_item` for `Tools/QA/*`, focused `run_tests`, and scene validation that produces compact `[QA-*]` evidence.
+- In the final handoff, explicitly state whether Unity MCP was used. If it was not used, say `Unity MCP not used` and explain why in one short sentence.
 
 Return a DAD handoff that keeps the next task narrow and verification-driven.
