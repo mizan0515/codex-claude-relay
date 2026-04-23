@@ -62,6 +62,8 @@ call when a task needs Codex <-> Claude peer turns.
   - waits for a compact relay done marker with a hard timeout so operators do not wait forever
 - `scripts/card-game/Run-CardGameManagedRelay.ps1`
   - the easiest operator path: prepare relay artifacts, run a bounded GUI worksession, then print only the compact signal markers
+- `scripts/card-game/Get-CardGameRelayEvidence.ps1`
+  - reads only the current relay event log and outputs a compact marker for whether Unity MCP tool calls were actually observed
 - `docs/card-game-integration/TOKEN-SAVINGS.md`
   - token and validation budget rules for Unity work
 - `docs/card-game-integration/CLAUDE-BACKEND-NOTES.md`
@@ -193,8 +195,10 @@ What `Managed Autopilot Loop` adds:
 Stale signal handling:
 - every live signal now carries `source_pid`, `source_process_started_at`, and `heartbeat_at`
 - if the desktop process is gone, the detached watcher rewrites the artifact to `status=Stale` immediately; startup/read paths still keep a second normalization pass as fallback
+- if the relay process stays alive but the turn watchdog has already expired beyond a short grace window, compact readers now treat that as a hung relay instead of waiting forever
 - loop status treats `Stale` as `prepare a fresh session`, not `keep waiting`
 - manager signal turns that into one compact operator state such as `relay_dead` with `suggested action: prepare_fresh_session`
+- manager signal also detects `relay_hung` and `relay_session_mismatch`, so a new prepared session cannot be hidden behind an unrelated older active relay
 - Desktop itself now shows only an event-log tail in the main surface so routine operation does not require reading the full JSONL log
 
 If the administrator wants to stay inside Codex Desktop only, the working rule

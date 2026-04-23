@@ -34,6 +34,8 @@ if (-not $LearningRecordPath) {
   $LearningRecordPath = Join-Path $dialogueRoot 'learning-memory\session-outcomes.jsonl'
 }
 
+$relayEvidenceScriptPath = Join-Path $PSScriptRoot 'Get-CardGameRelayEvidence.ps1'
+
 if (-not (Test-Path -LiteralPath $SessionStatePath)) {
   throw "Session state not found: $SessionStatePath"
 }
@@ -274,6 +276,14 @@ $newSection = [pscustomobject]@{
   Bullets = $resultBullets
 }
 $updatedSections = @($newSection) + @($historySections | Select-Object -First 9)
+$relayEvidence = $null
+if (Test-Path -LiteralPath $relayEvidenceScriptPath) {
+  try {
+    $relayEvidence = & powershell -ExecutionPolicy Bypass -File $relayEvidenceScriptPath -CardGameRoot $CardGameRoot -SessionId $sessionId | ConvertFrom-Json
+  } catch {
+    $relayEvidence = $null
+  }
+}
 
 $metrics = [ordered]@{
   iter = $nextIteration
@@ -283,7 +293,8 @@ $metrics = [ordered]@{
   duration_s = 0
   files_read = 0
   bash_calls = 0
-  mcp_calls = 0
+  mcp_calls = if ($relayEvidence) { [int]$relayEvidence.tool_events_observed } else { 0 }
+  unity_mcp_calls = if ($relayEvidence) { [int]$relayEvidence.unity_mcp_calls_observed } else { 0 }
   commits = 0
   prs = 0
   merged = 0
