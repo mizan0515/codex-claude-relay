@@ -160,6 +160,9 @@ When governance blocks a slice, manager text also includes:
 - `[AGENT_IDENTITY] status=...`
 - `[TOOL_REGISTRY] status=...`
 - `[POLICY_REGISTRY] status=...`
+- `[PROMPT_SURFACE] status=...`
+- `[ANOMALY] status=...`
+- `[SECURITY_POSTURE] risk=...`
 - `[RETRY_BUDGET] exhausted unity_verification` or `[RETRY_BUDGET] left=... limit=...` when retry budgeting is active
 
 These are the only lines an LLM or operator needs to read for routine status checks.
