@@ -48,8 +48,6 @@ if (-not (Test-Path -LiteralPath $promptPath)) {
 
 $manifest = Get-Content -Raw -LiteralPath $manifestPath -Encoding UTF8 | ConvertFrom-Json
 $sessionId = [string]$manifest.session_id
-$prompt = Get-Content -Raw -LiteralPath $promptPath -Encoding UTF8
-
 if (-not $sessionId) {
   throw 'Prepared manifest does not contain a session id.'
 }
@@ -62,7 +60,7 @@ if (Test-Path -LiteralPath $loopStatusPath) {
 & powershell -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\gui-smoke\run-gui-worksession.ps1') `
   -WorkingDir $CardGameRoot `
   -SessionId $sessionId `
-  -InitialPrompt $prompt `
+  -InitialPromptPath $promptPath `
   -Turns $Turns `
   -TimeoutSeconds $TimeoutSeconds
 

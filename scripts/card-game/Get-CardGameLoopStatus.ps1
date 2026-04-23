@@ -21,6 +21,9 @@ $directPromptPath = Join-Path $repoRoot 'profiles\card-game\generated-direct-cod
 $runbookPath = Join-Path $repoRoot 'profiles\card-game\generated-runbook.md'
 $opsDashboardPath = Join-Path $repoRoot 'profiles\card-game\generated-ops-dashboard.md'
 $relaySignalPath = Join-Path $CardGameRoot '.autopilot\generated\relay-live-signal.json'
+$requiredEvidenceScriptPath = Join-Path $scriptRoot 'Get-CardGameRequiredEvidenceStatus.ps1'
+$skillResolverScriptPath = Join-Path $scriptRoot 'Get-CardGameSkillResolverStatus.ps1'
+$toolPolicyScriptPath = Join-Path $scriptRoot 'Get-CardGameToolPolicyStatus.ps1'
 
 if (-not $ManifestPath) {
   $ManifestPath = Join-Path $repoRoot 'profiles\card-game\generated-admission.json'
@@ -101,6 +104,37 @@ $relaySignal = Read-JsonFile -Path $relaySignalPath
 $alreadyIntegrated = $completionMarker -and $sessionId -and ([string]$completionMarker.session_id -eq $sessionId)
 $executionMode = if ($manifest -and $manifest.guidance.execution_mode) { [string]($manifest.guidance.execution_mode.mode) } else { '' }
 $executionModeReason = if ($manifest -and $manifest.guidance.execution_mode) { [string]($manifest.guidance.execution_mode.reason) } else { '' }
+$requiredEvidenceStatus = $null
+$skillResolverStatus = $null
+$toolPolicyStatus = $null
+if ($manifest -and $sessionId -and (Test-Path -LiteralPath $requiredEvidenceScriptPath)) {
+  try {
+    $requiredEvidenceStatus = & powershell -ExecutionPolicy Bypass -File $requiredEvidenceScriptPath `
+      -CardGameRoot $CardGameRoot `
+      -ManifestPath $ManifestPath `
+      -SessionId $sessionId | ConvertFrom-Json
+  } catch {
+    $requiredEvidenceStatus = $null
+  }
+}
+if ($manifest -and (Test-Path -LiteralPath $skillResolverScriptPath)) {
+  try {
+    $skillResolverStatus = & powershell -ExecutionPolicy Bypass -File $skillResolverScriptPath `
+      -ManifestPath $ManifestPath | ConvertFrom-Json
+  } catch {
+    $skillResolverStatus = $null
+  }
+}
+if ($manifest -and (Test-Path -LiteralPath $toolPolicyScriptPath)) {
+  try {
+    $toolPolicyStatus = & powershell -ExecutionPolicy Bypass -File $toolPolicyScriptPath `
+      -CardGameRoot $CardGameRoot `
+      -ManifestPath $ManifestPath `
+      -SessionId $sessionId | ConvertFrom-Json
+  } catch {
+    $toolPolicyStatus = $null
+  }
+}
 
 $nextAction = 'prepare'
 $reasons = New-Object System.Collections.Generic.List[string]
@@ -113,8 +147,21 @@ if (Test-Path -LiteralPath $haltPath) {
 elseif ($sessionState -and
         @('converged','abandoned','stopped','failed') -contains ([string]$sessionState.session_status) -and
         -not $alreadyIntegrated) {
-  $nextAction = 'complete'
-  $reasons.Add("Session $sessionId is terminal: $($sessionState.session_status).")
+  if ($requiredEvidenceStatus -and -not $requiredEvidenceStatus.all_required_evidence_present) {
+    $nextAction = 'blocked'
+    $missing = @($requiredEvidenceStatus.missing_evidence) -join ', '
+    $unsupported = @($requiredEvidenceStatus.unsupported_evidence) -join ', '
+    if ($missing) {
+      $reasons.Add("Session $sessionId is terminal but missing required evidence: $missing.")
+    } elseif ($unsupported) {
+      $reasons.Add("Session $sessionId is terminal but requires unsupported evidence: $unsupported.")
+    } else {
+      $reasons.Add("Session $sessionId is terminal but its skill contract evidence is not satisfied.")
+    }
+  } else {
+    $nextAction = 'complete'
+    $reasons.Add("Session $sessionId is terminal: $($sessionState.session_status).")
+  }
 }
 elseif ($sessionState -and
         @('converged','abandoned','stopped','failed') -contains ([string]$sessionState.session_status) -and
@@ -155,6 +202,17 @@ elseif ($manifest -and $sessionId -and $executionMode -and $executionMode -ne 'r
 elseif ($manifest -and $sessionId) {
   $nextAction = 'run'
   $reasons.Add("Session $sessionId is prepared and awaiting relay execution.")
+}
+
+if ($nextAction -in @('run','complete','prepare') -and $skillResolverStatus -and -not $skillResolverStatus.all_required_skills_present) {
+  $nextAction = 'blocked'
+  $missingSkills = @($skillResolverStatus.missing_skills) -join ', '
+  $reasons.Add("Skill resolver is missing required skills: $missingSkills.")
+}
+if ($nextAction -in @('run','complete','prepare') -and $toolPolicyStatus -and [string]$toolPolicyStatus.status -eq 'violation') {
+  $nextAction = 'blocked'
+  $violations = @($toolPolicyStatus.violations) -join ', '
+  $reasons.Add("Forbidden tool policy violation detected: $violations.")
 }
 
 if ($operatorFocus -and $operatorFocus -ne 'none') {
@@ -199,6 +257,16 @@ $status = [ordered]@{
   relay_live_signal_status = if ($relaySignal) { [string]$relaySignal.status } else { '' }
   relay_live_signal_session_id = if ($relaySignal) { [string]$relaySignal.session_id } else { '' }
   relay_live_signal_marker = if ($relaySignal) { [string]$relaySignal.signal_marker } else { '' }
+  skill_resolver_status = if ($skillResolverStatus) { [string]$skillResolverStatus.status } else { '' }
+  missing_required_skills = if ($skillResolverStatus) { @($skillResolverStatus.missing_skills) } else { @() }
+  skill_resolver_marker = if ($skillResolverStatus) { [string]$skillResolverStatus.summary_marker } else { '' }
+  tool_policy_status = if ($toolPolicyStatus) { [string]$toolPolicyStatus.status } else { '' }
+  tool_policy_violations = if ($toolPolicyStatus) { @($toolPolicyStatus.violations) } else { @() }
+  tool_policy_marker = if ($toolPolicyStatus) { [string]$toolPolicyStatus.summary_marker } else { '' }
+  required_evidence_status = if ($requiredEvidenceStatus) { [string]$requiredEvidenceStatus.status } else { '' }
+  required_evidence = if ($requiredEvidenceStatus) { @($requiredEvidenceStatus.required_evidence) } else { @() }
+  missing_required_evidence = if ($requiredEvidenceStatus) { @($requiredEvidenceStatus.missing_evidence) } else { @() }
+  required_evidence_marker = if ($requiredEvidenceStatus) { [string]$requiredEvidenceStatus.summary_marker } else { '' }
   session_already_integrated = [bool]$alreadyIntegrated
   backlog_auto_promotion_safe = if ($backlogHealth) { [bool]$backlogHealth.auto_promotion_safe } else { $false }
   backlog_recommendation = if ($backlogHealth) { [string]$backlogHealth.recommendation } else { 'missing backlog health report' }
@@ -240,6 +308,24 @@ if ($status.relay_live_signal_path) {
   $lines.Add('Relay live signal: ' + $status.relay_live_signal_path)
   $lines.Add('Relay live signal status: ' + $status.relay_live_signal_status)
   $lines.Add('Relay live signal marker: ' + $status.relay_live_signal_marker)
+}
+if ($status.skill_resolver_status) {
+  $lines.Add('Skill resolver status: ' + $status.skill_resolver_status)
+  if ($status.skill_resolver_marker) {
+    $lines.Add('Skill resolver marker: ' + $status.skill_resolver_marker)
+  }
+}
+if ($status.tool_policy_status) {
+  $lines.Add('Tool policy status: ' + $status.tool_policy_status)
+  if ($status.tool_policy_marker) {
+    $lines.Add('Tool policy marker: ' + $status.tool_policy_marker)
+  }
+}
+if ($status.required_evidence_status) {
+  $lines.Add('Required evidence status: ' + $status.required_evidence_status)
+  if ($status.required_evidence_marker) {
+    $lines.Add('Required evidence marker: ' + $status.required_evidence_marker)
+  }
 }
 $lines.Add('Backlog auto-promotion safe: ' + $status.backlog_auto_promotion_safe)
 $lines.Add('Backlog recommendation: ' + $status.backlog_recommendation)

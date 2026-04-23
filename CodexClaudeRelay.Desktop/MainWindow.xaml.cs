@@ -39,6 +39,9 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _statusRefreshTimer;
     private string? _relaySignalWatcherKey;
     private bool _isRefreshingManagedStatus;
+    private string _latestManagedRemediationReport = "No remediation action has run yet.";
+    private int _unityVerificationRetryCount;
+    private ManagerSignalSummary? _latestManagerSignal;
 
     public MainWindow()
     {
@@ -89,6 +92,7 @@ public partial class MainWindow : Window
         await RefreshAdapterStatusAsync();
         await RefreshManagedStatusAsync(CancellationToken.None);
         RefreshUi();
+        WriteManagedRemediationArtifacts();
         SaveUiSettings();
     }
 
@@ -410,6 +414,69 @@ public partial class MainWindow : Window
 
             StatusMessageTextBlock.Text = "Easy Start stopped after reaching its desktop safety limit. Refresh the compact status and continue if needed.";
         });
+    }
+
+    private async void OpenBlockerArtifactButton_Click(object sender, RoutedEventArgs e)
+    {
+        var managedCardGameRoot = string.IsNullOrWhiteSpace(ManagedCardGameRootTextBox.Text)
+            ? @"D:\Unity\card game"
+            : ManagedCardGameRootTextBox.Text.Trim();
+        var managerSignal = await LoadManagerSignalAsync(managedCardGameRoot, CancellationToken.None);
+        if (managerSignal is null)
+        {
+            StatusMessageTextBlock.Text = "Managed status is not available right now.";
+            return;
+        }
+
+        switch (managerSignal.RecommendedActionId)
+        {
+            case "retry_unity_verification":
+                await RunOperationAsync("Retrying Unity verification through a fresh safe session...", async () =>
+                {
+                    var turns = ParseManagedTurns();
+                    var autopilotPreparation = await PrepareManagedAutopilotSessionAsync(
+                        managedCardGameRoot,
+                        forceRelay: true,
+                        CancellationToken.None);
+                    await RefreshManagedStatusAsync(CancellationToken.None);
+
+                    if (!autopilotPreparation.ShouldStartRelay)
+                    {
+                        UpdateLatestManagedRemediationReport($"Retry Unity Verification: blocked before relay start. {autopilotPreparation.StatusMessage}", incrementUnityRetry: true);
+                        StatusMessageTextBlock.Text = autopilotPreparation.StatusMessage;
+                        return;
+                    }
+
+                    var result = await RunPreparedManagedSessionAsync(
+                        managedCardGameRoot,
+                        turns,
+                        useEasyWatchdog: true,
+                        CancellationToken.None);
+                    UpdateLatestManagedRemediationReport($"Retry Unity Verification: {result.Message}", incrementUnityRetry: true);
+                    StatusMessageTextBlock.Text = result.Message;
+                    await RefreshManagedStatusAsync(CancellationToken.None);
+                });
+                return;
+            case "refresh_manager_signal":
+            case "refresh_relay_signal":
+                await RefreshManagedStatusAsync(CancellationToken.None);
+                StatusMessageTextBlock.Text = $"Refreshed compact status for action {managerSignal.RecommendedActionId}.";
+                return;
+        }
+
+        if (string.IsNullOrWhiteSpace(managerSignal.BlockerArtifactPath))
+        {
+            StatusMessageTextBlock.Text = "No blocker artifact is available right now.";
+            return;
+        }
+
+        if (!TryOpenBlockerArtifact(managerSignal.BlockerArtifactPath, out var openError))
+        {
+            StatusMessageTextBlock.Text = openError;
+            return;
+        }
+
+        StatusMessageTextBlock.Text = $"Opened blocker artifact: {managerSignal.BlockerArtifactPath}";
     }
 
     private async void RunManagedAutopilotLoopButton_Click(object sender, RoutedEventArgs e)
@@ -957,6 +1024,38 @@ public partial class MainWindow : Window
         ApplyPolicyGapVisual();
         ApplyRiskSummaryVisual();
         ApplySessionRiskBadgeVisual();
+        ApplyManagedOperatorVisual();
+    }
+
+    private void ApplyManagedOperatorVisual()
+    {
+        var retryBudgetExhausted = _latestManagerSignal is not null &&
+                                   _latestManagerSignal.UnityVerificationRetryLimit > 0 &&
+                                   _latestManagerSignal.UnityVerificationRetriesLeft <= 0;
+        var governanceBlocked = _latestManagerSignal is not null &&
+                                string.Equals(_latestManagerSignal.OverallStatus, "governance_blocked", StringComparison.OrdinalIgnoreCase);
+
+        ManagedStatusBorder.Background = CreateBrush(retryBudgetExhausted
+            ? "#FEF3F2"
+            : governanceBlocked
+                ? "#FFF7ED"
+                : "#FFF8FAFC");
+        ManagedStatusBorder.BorderBrush = CreateBrush(retryBudgetExhausted
+            ? "#FECDCA"
+            : governanceBlocked
+                ? "#FED7AA"
+                : "#FFD0D7DE");
+
+        EasyOperatorBorder.Background = CreateBrush(retryBudgetExhausted
+            ? "#FEF3F2"
+            : governanceBlocked
+                ? "#FFFDF3E8"
+                : "#FFFDF3E8");
+        EasyOperatorBorder.BorderBrush = CreateBrush(retryBudgetExhausted
+            ? "#FECDCA"
+            : governanceBlocked
+                ? "#FFF7B27A"
+                : "#FFF7B27A");
     }
 
     private void ApplyAdapterStatusVisual()
@@ -3006,6 +3105,7 @@ public partial class MainWindow : Window
             ? @"D:\Unity\card game"
             : ManagedCardGameRootTextBox.Text.Trim();
         var managerSignal = await LoadManagerSignalAsync(cardGameRoot, cancellationToken);
+        _latestManagerSignal = managerSignal;
         var resolvedTaskSlug = !string.IsNullOrWhiteSpace(managerSignal?.ResolvedTaskSlug)
             ? managerSignal.ResolvedTaskSlug
             : ManagedTaskSlugTextBox.Text?.Trim() ?? string.Empty;
@@ -3014,13 +3114,20 @@ public partial class MainWindow : Window
             ? "Managed status not available."
             : $"Overall: {managerSignal.OverallStatus}{Environment.NewLine}" +
               $"Reason: {managerSignal.Reason}{Environment.NewLine}" +
+              $"Governance: {BuildGovernanceLine(managerSignal)}{Environment.NewLine}" +
               $"Next action: {managerSignal.NextAction}{Environment.NewLine}" +
               $"Task slug: {resolvedTaskSlug}{Environment.NewLine}" +
               $"Session: {managerSignal.SessionId}{Environment.NewLine}" +
               $"Relay status: {managerSignal.RelayStatus}{Environment.NewLine}" +
               $"Suggested action: {managerSignal.SuggestedDesktopAction}{Environment.NewLine}" +
+              $"Open this next: {BuildBlockerArtifactLine(managerSignal)}{Environment.NewLine}" +
+              $"Missing key: {BuildBlockerDetailLine(managerSignal)}{Environment.NewLine}" +
+              $"Do this next: {BuildRecommendedActionLine(managerSignal)}{Environment.NewLine}" +
+              $"Retry budget: {BuildRetryBudgetLine(managerSignal)}{Environment.NewLine}" +
+              $"Last remediation: {_latestManagedRemediationReport}{Environment.NewLine}" +
               $"Wait should end: {managerSignal.WaitShouldEnd}{Environment.NewLine}" +
               $"Attention required: {managerSignal.AttentionRequired}{Environment.NewLine}" +
+              $"Governance marker: {BuildGovernanceMarkerLine(managerSignal)}{Environment.NewLine}" +
               $"Marker: {managerSignal.ManagerSignalMarker}{Environment.NewLine}" +
               $"Done: {managerSignal.ManagerDoneMarker}";
         EasyStatusTextBox.Text = managerSignal is null
@@ -3028,8 +3135,16 @@ public partial class MainWindow : Window
             : $"What is happening: {BuildEasyOverallLabel(managerSignal.OverallStatus)}{Environment.NewLine}" +
               $"What the app is doing next: {BuildEasyActionLabel(managerSignal.SuggestedDesktopAction)}{Environment.NewLine}" +
               $"Task: {resolvedTaskSlug}{Environment.NewLine}" +
+              $"Why it may be blocked: {BuildEasyGovernanceLabel(managerSignal)}{Environment.NewLine}" +
+              $"What file to read next: {BuildEasyBlockerArtifactLabel(managerSignal)}{Environment.NewLine}" +
+              $"What exact key is missing: {BuildEasyBlockerDetailLabel(managerSignal)}{Environment.NewLine}" +
+              $"What to do now: {BuildEasyRecommendedActionLabel(managerSignal)}{Environment.NewLine}" +
+              $"How many retries are left: {BuildEasyRetryBudgetLabel(managerSignal)}{Environment.NewLine}" +
+              $"Last fix result: {_latestManagedRemediationReport}{Environment.NewLine}" +
               $"Need a human now: {(managerSignal.AttentionRequired ? "yes" : "no")}{Environment.NewLine}" +
               $"Can stop waiting now: {(managerSignal.WaitShouldEnd ? "yes" : "no")}";
+        ApplyBlockerButtonState(managerSignal);
+        ApplyVisualStates();
     }
 
     private static string BuildEasyOverallLabel(string overallStatus) => overallStatus switch
@@ -3040,6 +3155,7 @@ public partial class MainWindow : Window
         "completion_pending" => "The session finished and needs write-back.",
         "route_only" => "This slice should not run through DAD.",
         "relay_dead" => "The previous relay session died and must be replaced.",
+        "governance_blocked" => "The slice is blocked by a safety rule.",
         "blocked" => "The backlog or decision state is blocked.",
         "halted" => "The project is halted on purpose.",
         _ => "The app is waiting for the next safe step."
@@ -3064,6 +3180,8 @@ public partial class MainWindow : Window
     private static string BuildEasyStopReason(ManagerSignalSummary managerSignal) => managerSignal.SuggestedDesktopAction switch
     {
         "wait_for_operator" => "The app is halted on purpose. A human decision is required.",
+        "fix_blocker" when string.Equals(managerSignal.OverallStatus, "governance_blocked", StringComparison.OrdinalIgnoreCase)
+            => $"A safety rule blocked this slice: {BuildGovernanceStopReason(managerSignal)}",
         "fix_blocker" => "The backlog or decision state is blocked. A human must fix the blocker.",
         "consume_route_artifact" => "This slice was routed away from DAD. A human should read the route artifact instead.",
         _ => "A human decision is required before Easy Start can continue."
@@ -3076,6 +3194,152 @@ public partial class MainWindow : Window
         "prepare_fresh_session" => $"Relay session died during execution. Manager status: {managerSignal.OverallStatus} / {managerSignal.Reason}.",
         "wait_for_signal" => $"Relay session is still active. Manager status: {managerSignal.OverallStatus} / {managerSignal.Reason}.",
         _ => $"Relay session ended in non-terminal manager state: {managerSignal.OverallStatus} / {managerSignal.Reason}."
+    };
+
+    private static string BuildEasyGovernanceLabel(ManagerSignalSummary managerSignal)
+    {
+        if (string.IsNullOrWhiteSpace(managerSignal.GovernanceStatus))
+        {
+            return "No extra safety block is active.";
+        }
+
+        return managerSignal.GovernanceStatus switch
+        {
+            "blocked" => BuildGovernanceStopReason(managerSignal),
+            _ => $"Governance {managerSignal.GovernanceStatus}: {managerSignal.GovernanceReason}"
+        };
+    }
+
+    private static string BuildGovernanceLine(ManagerSignalSummary managerSignal)
+    {
+        if (string.IsNullOrWhiteSpace(managerSignal.GovernanceStatus))
+        {
+            return "none";
+        }
+
+        return string.IsNullOrWhiteSpace(managerSignal.GovernanceReason)
+            ? managerSignal.GovernanceStatus
+            : $"{managerSignal.GovernanceStatus} ({managerSignal.GovernanceReason})";
+    }
+
+    private static string BuildGovernanceMarkerLine(ManagerSignalSummary managerSignal) =>
+        string.IsNullOrWhiteSpace(managerSignal.GovernanceMarker)
+            ? "(none)"
+            : managerSignal.GovernanceMarker;
+
+    private static string BuildBlockerArtifactLine(ManagerSignalSummary managerSignal)
+    {
+        if (string.IsNullOrWhiteSpace(managerSignal.BlockerArtifactPath))
+        {
+            return "(none)";
+        }
+
+        return string.IsNullOrWhiteSpace(managerSignal.BlockerHint)
+            ? managerSignal.BlockerArtifactPath
+            : $"{managerSignal.BlockerArtifactPath} ({managerSignal.BlockerHint})";
+    }
+
+    private static string BuildEasyBlockerArtifactLabel(ManagerSignalSummary managerSignal)
+    {
+        if (string.IsNullOrWhiteSpace(managerSignal.BlockerArtifactPath))
+        {
+            return "Nothing special. Keep reading Easy Status only.";
+        }
+
+        return managerSignal.BlockerArtifactPath;
+    }
+
+    private static string BuildBlockerDetailLine(ManagerSignalSummary managerSignal) =>
+        string.IsNullOrWhiteSpace(managerSignal.BlockerDetail)
+            ? "(none)"
+            : managerSignal.BlockerDetail;
+
+    private static string BuildEasyBlockerDetailLabel(ManagerSignalSummary managerSignal) =>
+        string.IsNullOrWhiteSpace(managerSignal.BlockerDetail)
+            ? "No exact missing key is active."
+            : managerSignal.BlockerDetail;
+
+    private static string BuildRecommendedActionLine(ManagerSignalSummary managerSignal) =>
+        string.IsNullOrWhiteSpace(managerSignal.RecommendedAction)
+            ? "(none)"
+            : managerSignal.RecommendedAction;
+
+    private static string BuildEasyRecommendedActionLabel(ManagerSignalSummary managerSignal) =>
+        string.IsNullOrWhiteSpace(managerSignal.RecommendedAction)
+            ? "Nothing special. Follow the normal safe path."
+            : managerSignal.RecommendedAction;
+
+    private static string BuildRetryBudgetLine(ManagerSignalSummary managerSignal)
+    {
+        if (managerSignal.UnityVerificationRetryLimit <= 0)
+        {
+            return "(not tracked)";
+        }
+
+        return $"{managerSignal.UnityVerificationRetriesLeft} left of {managerSignal.UnityVerificationRetryLimit}";
+    }
+
+    private static string BuildEasyRetryBudgetLabel(ManagerSignalSummary managerSignal)
+    {
+        if (managerSignal.UnityVerificationRetryLimit <= 0)
+        {
+            return "No retry budget is active.";
+        }
+
+        return $"{managerSignal.UnityVerificationRetriesLeft} left";
+    }
+
+    private void ApplyBlockerButtonState(ManagerSignalSummary? managerSignal)
+    {
+        if (OpenBlockerArtifactButton is null)
+        {
+            return;
+        }
+
+        var hasBlockerArtifact = managerSignal is not null && !string.IsNullOrWhiteSpace(managerSignal.BlockerArtifactPath);
+        OpenBlockerArtifactButton.IsEnabled = hasBlockerArtifact;
+        OpenBlockerArtifactButton.Content = hasBlockerArtifact
+            ? BuildBlockerButtonLabel(managerSignal!)
+            : "Open Blocker File";
+        OpenBlockerArtifactButton.ToolTip = hasBlockerArtifact
+            ? BuildBlockerArtifactLine(managerSignal!)
+            : "No blocker artifact is available right now.";
+    }
+
+    private static string BuildBlockerButtonLabel(ManagerSignalSummary managerSignal)
+    {
+        if (!string.IsNullOrWhiteSpace(managerSignal.RecommendedActionLabel))
+        {
+            return managerSignal.RecommendedActionLabel;
+        }
+
+        return "Open Blocker File";
+    }
+
+    private static bool TryOpenBlockerArtifact(string artifactPath, out string errorMessage)
+    {
+        if (!File.Exists(artifactPath))
+        {
+            errorMessage = $"Blocker artifact is missing: {artifactPath}";
+            return false;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = artifactPath,
+            UseShellExecute = true,
+        });
+        errorMessage = string.Empty;
+        return true;
+    }
+
+    private static string BuildGovernanceStopReason(ManagerSignalSummary managerSignal) => managerSignal.GovernanceReason switch
+    {
+        "missing_required_evidence" => "The proof is missing. For qa-editor work, Unity MCP evidence must exist.",
+        "missing_required_skill_paths" => "A required skill file is missing, so the app cannot start safely.",
+        "forbidden_tool_violation" => "The session used a forbidden tool for this slice.",
+        _ when string.IsNullOrWhiteSpace(managerSignal.GovernanceReason) => "A safety rule blocked this slice.",
+        _ => managerSignal.GovernanceReason.Replace('_', ' ') + "."
     };
 
     private async Task<ManagerSignalSummary?> LoadManagerSignalAsync(string cardGameRoot, CancellationToken cancellationToken)
@@ -3217,6 +3481,10 @@ public partial class MainWindow : Window
                 ManagedTurnsTextBox.Text = settings.ManagedTurns <= 1 ? "2" : settings.ManagedTurns.ToString();
                 ManagedLoopSessionsTextBox.Text = settings.ManagedLoopSessions <= 0 ? "3" : settings.ManagedLoopSessions.ToString();
                 _currentAdmissionManifestPath = settings.AdmissionManifestPath;
+                _latestManagedRemediationReport = string.IsNullOrWhiteSpace(settings.LatestManagedRemediationReport)
+                    ? "No remediation action has run yet."
+                    : settings.LatestManagedRemediationReport;
+                _unityVerificationRetryCount = Math.Max(0, settings.UnityVerificationRetryCount);
                 UseInteractiveAdaptersCheckBox.IsChecked = settings.UseInteractiveAdapters;
                 AutoApproveAllRequestsCheckBox.IsChecked = settings.AutoApproveAllRequests;
             }
@@ -3227,6 +3495,8 @@ public partial class MainWindow : Window
                 ManagedTaskSlugTextBox.Text = "companion-depth-first-slice";
                 ManagedTurnsTextBox.Text = "2";
                 ManagedLoopSessionsTextBox.Text = "3";
+                _latestManagedRemediationReport = "No remediation action has run yet.";
+                _unityVerificationRetryCount = 0;
             }
         }
         catch
@@ -3236,6 +3506,8 @@ public partial class MainWindow : Window
             ManagedTaskSlugTextBox.Text = "companion-depth-first-slice";
             ManagedTurnsTextBox.Text = "2";
             ManagedLoopSessionsTextBox.Text = "3";
+            _latestManagedRemediationReport = "No remediation action has run yet.";
+            _unityVerificationRetryCount = 0;
         }
         finally
         {
@@ -3259,7 +3531,9 @@ public partial class MainWindow : Window
                 ManagedTurns = ParseManagedTurns(),
                 ManagedLoopSessions = ParseManagedLoopSessions(),
                 UseInteractiveAdapters = UseInteractiveAdaptersCheckBox.IsChecked.GetValueOrDefault(),
-                AutoApproveAllRequests = AutoApproveAllRequestsCheckBox.IsChecked.GetValueOrDefault()
+                AutoApproveAllRequests = AutoApproveAllRequestsCheckBox.IsChecked.GetValueOrDefault(),
+                LatestManagedRemediationReport = _latestManagedRemediationReport,
+                UnityVerificationRetryCount = _unityVerificationRetryCount
             };
             File.WriteAllText(
                 GetUiSettingsPath(),
@@ -3272,6 +3546,132 @@ public partial class MainWindow : Window
     }
 
     private string GetUiSettingsPath() => Path.Combine(_appDataDirectory, "ui-settings.json");
+
+    private void UpdateLatestManagedRemediationReport(string report, bool incrementUnityRetry = false)
+    {
+        if (incrementUnityRetry)
+        {
+            _unityVerificationRetryCount++;
+        }
+        _latestManagedRemediationReport = string.IsNullOrWhiteSpace(report)
+            ? "No remediation action has run yet."
+            : report.Trim();
+        SaveUiSettings();
+        WriteManagedRemediationArtifacts();
+        QueueManagedStatusRefreshAfterRemediation();
+    }
+
+    private void WriteManagedRemediationArtifacts()
+    {
+        try
+        {
+            var repoRoot = TryFindRelayRepositoryRoot();
+            var generatedRoot = string.IsNullOrWhiteSpace(ManagedCardGameRootTextBox.Text)
+                ? Path.Combine(@"D:\Unity\card game", ".autopilot", "generated")
+                : Path.Combine(ManagedCardGameRootTextBox.Text.Trim(), ".autopilot", "generated");
+            Directory.CreateDirectory(generatedRoot);
+            const int unityVerificationRetryLimit = 2;
+            var retriesLeft = Math.Max(0, unityVerificationRetryLimit - _unityVerificationRetryCount);
+            var retryBudgetMarker = retriesLeft <= 0
+                ? "[RETRY_BUDGET] exhausted unity_verification"
+                : $"[RETRY_BUDGET] left={retriesLeft} limit={unityVerificationRetryLimit}";
+
+            var summary = new
+            {
+                generated_at = DateTimeOffset.Now.ToString("O"),
+                task_slug = ManagedTaskSlugTextBox.Text?.Trim() ?? string.Empty,
+                session_id = SessionIdTextBox.Text?.Trim() ?? string.Empty,
+                latest_remediation_report = _latestManagedRemediationReport,
+                unity_verification_retry_count = _unityVerificationRetryCount,
+                unity_verification_retry_limit = unityVerificationRetryLimit,
+                unity_verification_retries_left = retriesLeft,
+                retry_budget_marker = retryBudgetMarker
+            };
+
+            var jsonPath = Path.Combine(generatedRoot, "relay-remediation-status.json");
+            var textPath = Path.Combine(generatedRoot, "relay-remediation-status.txt");
+            File.WriteAllText(jsonPath, JsonSerializer.Serialize(summary, HandoffJson.SerializerOptions));
+            File.WriteAllText(textPath, "[REMEDIATION] " + _latestManagedRemediationReport + Environment.NewLine + retryBudgetMarker);
+
+            if (!string.IsNullOrWhiteSpace(repoRoot))
+            {
+                var localMirrorDir = Path.Combine(_appDataDirectory, "auto-logs");
+                Directory.CreateDirectory(localMirrorDir);
+                File.WriteAllText(Path.Combine(localMirrorDir, "relay-remediation-status.json"), JsonSerializer.Serialize(summary, HandoffJson.SerializerOptions));
+                File.WriteAllText(Path.Combine(localMirrorDir, "relay-remediation-status.txt"), "[REMEDIATION] " + _latestManagedRemediationReport + Environment.NewLine + retryBudgetMarker);
+            }
+
+            RefreshManagedCompactArtifacts(repoRoot);
+        }
+        catch
+        {
+            // Best-effort only. Remediation reporting must never break the app.
+        }
+    }
+
+    private void RefreshManagedCompactArtifacts(string? repoRoot)
+    {
+        if (string.IsNullOrWhiteSpace(repoRoot))
+        {
+            return;
+        }
+
+        var cardGameRoot = string.IsNullOrWhiteSpace(ManagedCardGameRootTextBox.Text)
+            ? @"D:\Unity\card game"
+            : ManagedCardGameRootTextBox.Text.Trim();
+        RefreshManagedCompactArtifact(repoRoot, cardGameRoot, "Get-CardGameManagerSignal.ps1");
+        RefreshManagedCompactArtifact(repoRoot, cardGameRoot, "Write-CardGameOpsDashboard.ps1");
+    }
+
+    private void QueueManagedStatusRefreshAfterRemediation()
+    {
+        _ = Dispatcher.InvokeAsync(async () =>
+        {
+            try
+            {
+                await RefreshManagedStatusAsync(CancellationToken.None);
+            }
+            catch
+            {
+                // Best-effort only. Remediation status should refresh immediately when possible,
+                // but a temporary compact-signal read failure must not break the UI thread.
+            }
+        }, DispatcherPriority.Background);
+    }
+
+    private static void RefreshManagedCompactArtifact(string repoRoot, string cardGameRoot, string scriptFileName)
+    {
+        var scriptPath = Path.Combine(repoRoot, "scripts", "card-game", scriptFileName);
+        if (!File.Exists(scriptPath))
+        {
+            return;
+        }
+
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "powershell",
+                Arguments = string.Join(' ', new[]
+                {
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    QuotePowerShellArgument(scriptPath),
+                    "-CardGameRoot",
+                    QuotePowerShellArgument(cardGameRoot)
+                }),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = repoRoot,
+            }
+        };
+
+        process.Start();
+        process.WaitForExit();
+    }
 
     private string? TryReadCurrentAdmissionManifestPath()
     {
@@ -3428,6 +3828,42 @@ public partial class MainWindow : Window
 
         [JsonPropertyName("manager_done_marker")]
         public string ManagerDoneMarker { get; init; } = string.Empty;
+
+        [JsonPropertyName("governance_status")]
+        public string GovernanceStatus { get; init; } = string.Empty;
+
+        [JsonPropertyName("governance_reason")]
+        public string GovernanceReason { get; init; } = string.Empty;
+
+        [JsonPropertyName("governance_marker")]
+        public string GovernanceMarker { get; init; } = string.Empty;
+
+        [JsonPropertyName("blocker_artifact_path")]
+        public string BlockerArtifactPath { get; init; } = string.Empty;
+
+        [JsonPropertyName("blocker_hint")]
+        public string BlockerHint { get; init; } = string.Empty;
+
+        [JsonPropertyName("blocker_detail")]
+        public string BlockerDetail { get; init; } = string.Empty;
+
+        [JsonPropertyName("recommended_action")]
+        public string RecommendedAction { get; init; } = string.Empty;
+
+        [JsonPropertyName("recommended_action_id")]
+        public string RecommendedActionId { get; init; } = string.Empty;
+
+        [JsonPropertyName("recommended_action_label")]
+        public string RecommendedActionLabel { get; init; } = string.Empty;
+
+        [JsonPropertyName("unity_verification_retry_count")]
+        public int UnityVerificationRetryCount { get; init; }
+
+        [JsonPropertyName("unity_verification_retry_limit")]
+        public int UnityVerificationRetryLimit { get; init; }
+
+        [JsonPropertyName("unity_verification_retries_left")]
+        public int UnityVerificationRetriesLeft { get; init; }
     }
 
     private sealed record ProcessRunResult(int ExitCode, string OutputText, string ErrorText);

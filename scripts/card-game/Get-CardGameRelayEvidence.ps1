@@ -47,6 +47,10 @@ if (-not $SessionId -and $liveSignal -and $liveSignal.session_id) {
   $SessionId = [string]$liveSignal.session_id
 }
 
+if ($SessionId) {
+  $resolvedSessionId = $SessionId
+}
+
 if (-not $EventLogPath -and $SessionId) {
   $candidate = Join-Path $appDataDir "logs\$SessionId.jsonl"
   if (Test-Path -LiteralPath $candidate) {
@@ -55,22 +59,27 @@ if (-not $EventLogPath -and $SessionId) {
 }
 
 if (-not $EventLogPath -and $liveSignal -and $liveSignal.event_log_path) {
-  $EventLogPath = [string]$liveSignal.event_log_path
+  $liveSignalSessionId = if ($liveSignal.session_id) { [string]$liveSignal.session_id } else { '' }
+  if (-not $SessionId -or ($liveSignalSessionId -and $liveSignalSessionId -eq $SessionId)) {
+    $EventLogPath = [string]$liveSignal.event_log_path
+  }
 }
 
-if (-not $EventLogPath) {
+if (-not $EventLogPath -and -not $SessionId) {
   $EventLogPath = Get-EventLogPathFromStatus -Path $currentStatusPath
 }
 
-$resolvedSessionId = $SessionId
+if (-not $EventLogPath -and $SessionId) {
+  $status = 'session_log_missing'
+} elseif (-not $EventLogPath -and $liveSignal -and $liveSignal.event_log_path) {
+  $EventLogPath = [string]$liveSignal.event_log_path
+}
 $toolEventsObserved = 0
 $mcpCallsObserved = 0
 $unityMcpCallsObserved = 0
 $unityMcpObserved = $false
 $unityMcpMentionedInPromptOrLog = $false
-$unityMcpRequired = $false
-$mcpApprovalBlocked = $false
-$status = 'missing'
+$status = if ($status) { $status } else { 'missing' }
 
 if ($EventLogPath -and (Test-Path -LiteralPath $EventLogPath)) {
   $status = 'ok'
@@ -98,38 +107,60 @@ if ($EventLogPath -and (Test-Path -LiteralPath $EventLogPath)) {
     }
 
     $eventType = [string]$entry.EventType
-    if ($eventType -eq 'mcp.review_required' -or $eventType -eq 'approval.queue.enqueued') {
-      $mcpApprovalBlocked = $true
+    $messageText = [string]$entry.Message
+    $payloadText = [string]$entry.Payload
+
+    $reportedUnityMcpTool = $null
+    if (($eventType -in @('turn.completed', 'handoff.accepted', 'tool.invoked', 'tool.completed', 'mcp.requested', 'mcp.completed')) -and
+        (($messageText -match 'mcp__unityMCP__([A-Za-z_]+)') -or ($rawLine -match 'mcp__unityMCP__([A-Za-z_]+)') -or ($payloadText -match 'mcp__unityMCP__([A-Za-z_]+)'))) {
+      $reportedUnityMcpTool = $Matches[1]
+      $unityMcpCallsObserved++
+      $mcpCallsObserved++
+      $unityMcpObserved = $true
     }
 
-    if ($eventType -notin @('tool.invoked', 'tool.completed', 'mcp.requested', 'mcp.completed')) {
+    $payloadJson = $null
+    try {
+      if (-not [string]::IsNullOrWhiteSpace($payloadText) -and $payloadText.TrimStart().StartsWith('{')) {
+        $payloadJson = $payloadText | ConvertFrom-Json
+      }
+    } catch {
+      $payloadJson = $null
+    }
+
+    if ($payloadJson -and $payloadJson.item -and [string]$payloadJson.item.type -eq 'mcp_tool_call') {
+      $mcpCallsObserved++
+      $toolEventsObserved++
+
+      $payloadServer = [string]$payloadJson.item.server
+      $payloadTool = [string]$payloadJson.item.tool
+      if ($payloadServer -eq 'unityMCP' -or $payloadTool -match '^(read_console|refresh_unity|execute_menu_item|manage_editor|run_tests|get_test_job)$') {
+        $unityMcpCallsObserved++
+        $unityMcpObserved = $true
+      }
+
       continue
     }
 
-    $payloadText = [string]$entry.Payload
-    if ($payloadText -match '"type":"command_execution"' -or ($rawLine -match 'aggregated_output' -and $eventType -notlike 'mcp.*')) {
+    if ($eventType -notin @('tool.invoked', 'tool.completed')) {
+      continue
+    }
+    if ($payloadText -match '"type":"command_execution"' -or $rawLine -match 'aggregated_output') {
       continue
     }
 
     $toolEventsObserved++
-    if ($payloadText -match '"type":"mcp_tool_call"' -or $eventType -like 'mcp.*' -or $payloadText -match 'mcp__') {
+    if ($payloadText -match 'mcp__') {
       $mcpCallsObserved++
     }
 
-    if ($payloadText -match '"server":"unityMCP"' -or
-        $payloadText -match 'mcp__unityMCP__\.[A-Za-z_]+' -or
-        [string]$entry.Message -match 'mcp__unityMCP__\.[A-Za-z_]+' -or
-        $rawLine -match 'unityMCP') {
+    if ($payloadText -match 'mcp__unityMCP__\.[A-Za-z_]+' -or [string]$entry.Message -match 'mcp__unityMCP__\.[A-Za-z_]+') {
       $unityMcpCallsObserved++
       $unityMcpObserved = $true
     }
   }
 } elseif ($EventLogPath) {
   $status = 'event_log_missing'
-}
-
-if ($unityMcpMentionedInPromptOrLog) {
-  $unityMcpRequired = $true
 }
 
 $summary = [ordered]@{
@@ -143,17 +174,10 @@ $summary = [ordered]@{
   mcp_calls_observed = $mcpCallsObserved
   unity_mcp_calls_observed = $unityMcpCallsObserved
   unity_mcp_observed = $unityMcpObserved
-  unity_mcp_required = $unityMcpRequired
-  unity_mcp_required_but_missing = ($unityMcpRequired -and -not $unityMcpObserved)
-  mcp_approval_blocked = $mcpApprovalBlocked
   unity_mcp_mentioned_in_prompt_or_log = $unityMcpMentionedInPromptOrLog
   compact_signal_only = $true
   summary_marker = if ($unityMcpObserved) {
     "[RELAY_EVIDENCE] unity_mcp=observed count=$unityMcpCallsObserved"
-  } elseif ($mcpApprovalBlocked -and $mcpCallsObserved -gt 0) {
-    "[RELAY_EVIDENCE] unity_mcp=approval-blocked mcp_calls=$mcpCallsObserved"
-  } elseif ($unityMcpRequired) {
-    "[RELAY_EVIDENCE] unity_mcp=required-but-missing count=0"
   } elseif ($mcpCallsObserved -gt 0) {
     "[RELAY_EVIDENCE] unity_mcp=not-observed mcp_calls=$mcpCallsObserved"
   } else {

@@ -69,119 +69,108 @@ Run one real autopilot -> relay cycle against `D:\Unity\card game` through the o
 - After this patch, that state should surface as `relay_hung` quickly enough for a non-technical operator to stop waiting and prepare a fresh session.
 - Unity MCP was available, but this cycle did not provide evidence that the relay peers actually used it.
 
-## Follow-up run after budget and manager-guard changes
+## Second large-cycle pass
 
-- Real GUI operator path:
-  - `scripts/gui-smoke/run-gui-easy-operator.ps1 -CardGameRoot 'D:\Unity\card game' -TaskSlug 'tool-qa-menu-coverage-matrix' -TimeoutSeconds 600`
-- Screenshots:
-  - `scripts/gui-smoke/out-easy-operator/20260423-125632-after-launch.png`
-  - `scripts/gui-smoke/out-easy-operator/20260423-125632-after-config.png`
-  - `scripts/gui-smoke/out-easy-operator/20260423-130437-after-easy-start.png`
+### What was run
 
-### What improved
+- `scripts/card-game/Run-CardGameManagedRelay.ps1 -CardGameRoot 'D:\Unity\card game' -TaskSlug 'tool-qa-menu-coverage-matrix' -Turns 4 -TimeoutSeconds 900 -ForceRelay`
+- Compact-only follow-up:
+  - `Get-CardGameManagerSignal.ps1`
+  - `Get-CardGameRelaySignal.ps1`
+  - `Get-CardGameRelayEvidence.ps1`
 
-- The session no longer failed on the earlier `state.json missing` completion path.
-- The operator surface stopped waiting and surfaced the stop condition directly.
-- The relay completed one successful bounded cycle on session `tool-qa-menu-coverage-matrix-20260423-125639`.
+### What was observed
 
-### New issues found
+- The first rerun did not even enter the GUI worksession because the generated session prompt was passed as a raw multiline command-line argument.
+- PowerShell argument parsing broke on localized multiline content, so the relay session prepared successfully but the GUI script failed before the Desktop run started.
+- After changing the worksession path to pass `InitialPromptPath` instead of raw prompt text, the next rerun entered the Desktop session correctly.
+- That rerun then stopped at:
+  - `relay_status = AwaitingApproval`
+  - `pending_approval = MCP Tool Approval`
+  - `summary = invoke MCP tool 'MCP Tool: mcp_tool_call'`
+- Narrow state inspection showed the queued payload was actually:
+  - `item.type = mcp_tool_call`
+  - `item.tool = read_mcp_resource`
+  - `item.server = invalid`
+- So the broker was escalating a generic read-only MCP resource probe because it only recognized `ReadMcpResourceTool` by title, not the newer `mcp_tool_call` wrapper payload.
 
-1. Intentional one-cycle pauses were misclassified as blockers.
-   - Relay signal:
-     - `[RELAY_DONE] false status=Paused reason=Paused_intentionally_after_one_successful_relay_cycle.`
-   - Manager signal still surfaced:
-     - `overall=relay_paused_error`
-     - `action=fix_blocker`
+### Problems found
 
-2. Unity MCP still was not actually used by the peer during the QA/editor slice.
-   - Compact evidence:
-     - `[RELAY_EVIDENCE] unity_mcp=not-observed count=0`
-   - The prompt explicitly asked for Unity MCP and named suitable tools, but the peer still spent its bounded cycle on shell/document reads.
+4. GUI worksession prompt handoff was not robust against multiline localized prompts.
+   - Prepared sessions could succeed while the actual Desktop run never started.
+   - This is an operator-facing blocker because it looks like relay preparation worked even though no peer cycle actually ran.
 
-### Follow-up improvements added
+5. Generic `mcp_tool_call` wrappers were punching through the default safe MCP policy.
+   - Read-only MCP resource probes were being escalated into operator review.
+   - That deadlocked the exact qa-editor slices that require Unity MCP evidence.
 
-- `Get-CardGameLoopStatus.ps1`
-  - treats `Paused intentionally after one successful relay cycle.` as resumable `run`, not `blocked`
-- `Get-CardGameManagerSignal.ps1`
-  - emits `relay_cycle_complete` with `success=true` for the intentional one-cycle pause path
-- `Get-CardGameRelayEvidence.ps1`
-  - emits `unity_mcp_required` and `unity_mcp_required_but_missing`
-  - upgrades the compact marker to `[RELAY_EVIDENCE] unity_mcp=required-but-missing count=0` when the task asked for Unity MCP but the peer never used it
+### Improvements added
+
+- `scripts/gui-smoke/run-gui-worksession.ps1`
+  - now accepts `InitialPromptPath`
+  - reads the prompt from disk inside the script instead of trusting raw multiline argv
+- `scripts/card-game/Run-CardGameManagedRelay.ps1`
+  - now passes the generated prompt path into the GUI worksession instead of embedding prompt text directly in the child PowerShell invocation
+- `CodexClaudeRelay.Core/Policy/RelayApprovalPolicy.cs`
+  - now inspects the inner `item.tool` and `item.server` fields inside generic `mcp_tool_call` payloads
+  - auto-allows read-only `read_mcp_resource` / `list_mcp_resources` wrappers
+  - auto-allows safe `unityMCP` verification tools such as `read_console`, `refresh_unity`, `execute_menu_item`, `manage_editor`, `run_tests`, and `get_test_job`
+
+### Current conclusion after the second pass
+
+- The real managed relay cycle now gets past the prompt-handoff failure that previously prevented the GUI run.
+- The next blocker was not "Unity MCP is dangerous" but "the broker could not see that the inner MCP tool was read-only or safe verification work".
+- After the policy patch, the next large-cycle rerun should no longer stop on generic read-only `mcp_tool_call` wrappers before the peer can reach actual Unity verification work.
+
+## Third large-cycle pass
+
+### What was run
+
+- `scripts/card-game/Run-CardGameManagedRelay.ps1 -CardGameRoot 'D:\Unity\card game' -TaskSlug 'tool-qa-menu-coverage-matrix' -Turns 4 -TimeoutSeconds 600 -ForceRelay`
+- Compact-only follow-up:
+  - `Get-CardGameRelaySignal.ps1`
+  - `Get-CardGameManagerSignal.ps1`
+  - `Get-CardGameRequiredEvidenceStatus.ps1`
+  - `Get-CardGameRelayEvidence.ps1 -SessionId tool-qa-menu-coverage-matrix-20260423-175541`
+
+### What was observed
+
+- The managed relay session actually ran:
+  - turn 1 on `codex`
+  - handoff to turn 2 on `claude-code`
+- The broker no longer stopped on a generic `mcp_tool_call` approval.
+- The session then paused because Claude exceeded the cumulative output budget:
+  - `Cumulative output token budget exceeded for claude-code. Total output tokens: 23828.`
+- Compact evidence initially returned a false negative for Unity MCP, even though the event log contained:
+  - `mcp__unityMCP__read_console`
+  - post-turn handoff text saying Unity MCP was used on the Codex side
+
+### Problems found
+
+6. The qa-editor relay budget was too low for a real Unity verification slice.
+   - `maxCumulativeOutputTokens = 16000` was not enough for a 4-turn managed relay on `tool-qa-menu-coverage-matrix`.
+   - This caused a pause mid-cycle even though the relay was genuinely running.
+
+7. Compact Unity MCP evidence was undercounting real usage.
+   - The evidence parser did not recognize generic `mcp_tool_call` wrapper payloads early enough.
+   - It also missed some Unity MCP mentions embedded in completed-turn / accepted-handoff payloads.
+
+### Improvements added
+
+- `profiles/card-game/broker.cardgame.json`
+  - raises `maxCumulativeOutputTokens` from `16000` to `32000` for the card-game profile
 - `profiles/card-game/prompt-prefix.md`
-  - now requires at least one Unity MCP verification action for `qa-editor` / `Tools/QA/*` slices when MCP is available
+  - explicitly forbids placeholder invalid MCP probes and tells peers to say `Unity MCP not used` instead of fabricating probe traffic
+- `scripts/card-game/Get-CardGameRelayEvidence.ps1`
+  - now reads payload text before Unity MCP detection
+  - recognizes generic `mcp_tool_call` wrapper payloads
+  - recognizes Unity MCP usage mentioned in turn-complete / handoff payload text
 
-## Four-turn GUI worksession with Unity MCP task
+### Current conclusion after the third pass
 
-- Real GUI worksession path:
-  - `scripts/gui-smoke/run-gui-worksession.ps1` with session `tool-qa-menu-coverage-matrix-20260423-130655`
-  - turns: `4`
-- Screenshots:
-  - `scripts/gui-smoke/out-worksession/20260423-130721-after-launch.png`
-  - `scripts/gui-smoke/out-worksession/20260423-130722-after-config.png`
-  - `scripts/gui-smoke/out-worksession/20260423-130819-after-check-adapters.png`
-  - `scripts/gui-smoke/out-worksession/20260423-130825-after-start.png`
-  - `scripts/gui-smoke/out-worksession/20260423-132153-after-autorun.png`
-
-### What this proved
-
-- Relay peers did use Unity MCP in a real session.
-- Compact event evidence showed Codex calling:
-  - `unityMCP/read_console`
-  - `unityMCP/manage_editor` with `play`
-  - `unityMCP/execute_menu_item` for `Tools/QA/Navigate/Go To ProbeResult`
-  - `unityMCP/manage_editor` with `stop`
-- The MCP call reached completion and returned `[QA-*]` console data, so the missing piece was not peer capability.
-
-### New blocker found
-
-1. The broker still paused the session after the first observed MCP action.
-   - Even though the UI had dangerous auto-approve enabled, the relay moved to `AwaitingApproval` because policy-gap approvals were queued after the fact and the Desktop auto-approve path only handled broker-routed interactive approval requests.
-   - Manager signal also mislabeled this state as `relay_ready`.
-
-### Follow-up improvements added
-
-- `MainWindow.xaml.cs`
-  - auto-resolves queued approvals when dangerous auto-approve mode is enabled
-- `Get-CardGameManagerSignal.ps1`
-  - adds `approval_required` / `review_pending_approval` for `AwaitingApproval`
-- `Get-CardGameLoopStatus.ps1`
-  - treats `AwaitingApproval` as `blocked` instead of `run`
-- `Get-CardGameRelayEvidence.ps1`
-  - now counts real `mcp_tool_call` activity
-  - now recognizes `unityMCP` server calls as Unity MCP evidence
-  - can distinguish `unity_mcp=approval-blocked` from `required-but-missing`
-
-## Final follow-up run after queued-approval auto-resolve
-
-- Real GUI worksession path:
-  - `scripts/gui-smoke/run-gui-worksession.ps1` with session `tool-qa-menu-coverage-matrix-20260423-132505`
-  - turns: `4`
-- Screenshots:
-  - `scripts/gui-smoke/out-worksession/20260423-132522-after-launch.png`
-  - `scripts/gui-smoke/out-worksession/20260423-132524-after-config.png`
-  - `scripts/gui-smoke/out-worksession/20260423-132544-after-check-adapters.png`
-  - `scripts/gui-smoke/out-worksession/20260423-132554-after-start.png`
-  - `scripts/gui-smoke/out-worksession/20260423-133904-after-autorun.png`
-
-### What this proved
-
-- Unity MCP is now confirmed in a real relay session with compact evidence:
-  - `[RELAY_EVIDENCE] unity_mcp=observed count=4`
-- Compact manager surface recovered correctly after the process disappeared:
-  - `overall=relay_dead`
-  - `action=prepare_fresh_session`
-- Auto-approve no longer leaves the session stuck forever in `AwaitingApproval` for queued broker approvals.
-
-### Remaining issue after this run
-
-1. The peer reached Unity MCP successfully, then later triggered a web tool review and the relay process disappeared after the queued web approval was auto-resolved.
-   - Evidence from the same session:
-     - `mcp.requested` / `mcp.completed` for `unityMCP/read_console`
-     - `approval.queue.resolved` and `session.resumed` for `Web Tool Approval`
-   - This is a different blocker from the original Unity MCP problem.
-   - It also wastes tokens for Unity-local tasks because web activity was unnecessary here.
-
-### Follow-up improvement added
-
-- `profiles/card-game/prompt-prefix.md`
-  - now explicitly forbids web/browser tools unless the current relay task truly requires internet research
+- The relay peers did actually use Unity MCP in the real large-cycle session.
+- The compact proof is now:
+  - `[RELAY_EVIDENCE] unity_mcp=observed count=12`
+- Required evidence now resolves to:
+  - `[REQUIRED_EVIDENCE] ok`
+- The remaining large-cycle blocker is no longer "prove Unity MCP was used", but "keep the qa-editor relay inside a realistic output budget without reopening full logs".

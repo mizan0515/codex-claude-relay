@@ -21,4 +21,8 @@ internal sealed class RelayUiSettings
     public bool UseInteractiveAdapters { get; set; }
 
     public bool AutoApproveAllRequests { get; set; }
+
+    public string? LatestManagedRemediationReport { get; set; }
+
+    public int UnityVerificationRetryCount { get; set; }
 }

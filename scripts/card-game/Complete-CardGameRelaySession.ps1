@@ -20,6 +20,8 @@ $archivedManifestDir = Join-Path $profileRoot 'archive'
 $defaultManifestPath = Join-Path $profileRoot 'generated-admission.json'
 $defaultPromptPath = Join-Path $profileRoot 'generated-session-prompt.md'
 $defaultPlanPath = Join-Path $profileRoot 'generated-session-plan.md'
+$requiredEvidenceScriptPath = Join-Path $scriptRoot 'Get-CardGameRequiredEvidenceStatus.ps1'
+$toolPolicyScriptPath = Join-Path $scriptRoot 'Get-CardGameToolPolicyStatus.ps1'
 
 if (-not $ManifestPath) {
   $ManifestPath = Join-Path $repoRoot 'profiles\card-game\generated-admission.json'
@@ -47,6 +49,39 @@ $sessionState = Get-Content -Raw -LiteralPath $sessionStatePath -Encoding UTF8 |
 $terminalStatuses = @('converged', 'abandoned', 'stopped', 'failed')
 if ($terminalStatuses -notcontains ([string]$sessionState.session_status)) {
   throw "Session $SessionId is not terminal yet: $($sessionState.session_status)"
+}
+
+if (Test-Path -LiteralPath $requiredEvidenceScriptPath) {
+  $requiredEvidenceStatus = & powershell -ExecutionPolicy Bypass -File $requiredEvidenceScriptPath `
+    -CardGameRoot $CardGameRoot `
+    -ManifestPath $ManifestPath `
+    -SessionId $SessionId | ConvertFrom-Json
+
+  if (-not $requiredEvidenceStatus.all_required_evidence_present) {
+    $missing = @($requiredEvidenceStatus.missing_evidence) -join ', '
+    $unsupported = @($requiredEvidenceStatus.unsupported_evidence) -join ', '
+    $detail = if ($missing) {
+      "missing evidence: $missing"
+    } elseif ($unsupported) {
+      "unsupported evidence: $unsupported"
+    } else {
+      'required evidence check failed'
+    }
+
+    throw "Session $SessionId cannot be completed because the skill contract is not satisfied ($detail)."
+  }
+}
+
+if (Test-Path -LiteralPath $toolPolicyScriptPath) {
+  $toolPolicyStatus = & powershell -ExecutionPolicy Bypass -File $toolPolicyScriptPath `
+    -CardGameRoot $CardGameRoot `
+    -ManifestPath $ManifestPath `
+    -SessionId $SessionId | ConvertFrom-Json
+
+  if ([string]$toolPolicyStatus.status -eq 'violation') {
+    $violations = @($toolPolicyStatus.violations) -join ', '
+    throw "Session $SessionId cannot be completed because forbidden tool policy was violated ($violations)."
+  }
 }
 
 if (-not $SkipHeuristics -and (Test-Path -LiteralPath $learningPath)) {
