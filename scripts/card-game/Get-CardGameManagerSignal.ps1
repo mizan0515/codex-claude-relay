@@ -238,6 +238,11 @@ $summary = [ordered]@{
   policy_registry_marker = if ($governanceStatus) { [string]$governanceStatus.policy_registry_marker } else { '' }
   active_policy_ids = if ($governanceStatus) { @($governanceStatus.active_policy_ids) } else { @() }
   missing_policy_ids = if ($governanceStatus) { @($governanceStatus.missing_policy_ids) } else { @() }
+  prompt_surface_status = if ($governanceStatus) { [string]$governanceStatus.prompt_surface_status } else { '' }
+  prompt_surface_path = if ($governanceStatus) { [string]$governanceStatus.prompt_surface_path } else { '' }
+  prompt_surface_marker = if ($governanceStatus) { [string]$governanceStatus.prompt_surface_marker } else { '' }
+  prompt_surface_issues = if ($governanceStatus) { @($governanceStatus.prompt_surface_issues) } else { @() }
+  prompt_surface_recommendation = if ($governanceStatus) { [string]$governanceStatus.prompt_surface_recommendation } else { '' }
   blocker_artifact_path = if ($governanceStatus) { [string]$governanceStatus.blocker_artifact_path } else { '' }
   blocker_hint = if ($governanceStatus) { [string]$governanceStatus.blocker_hint } else { '' }
   blocker_detail = if ($governanceStatus) { [string]$governanceStatus.blocker_detail } else { '' }
@@ -271,6 +276,7 @@ $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $OutputJsonPath -E
   if ($governanceStatus) { [string]$governanceStatus.agent_identity_marker } else { '' }
   if ($governanceStatus) { [string]$governanceStatus.tool_registry_marker } else { '' }
   if ($governanceStatus) { [string]$governanceStatus.policy_registry_marker } else { '' }
+  if ($governanceStatus) { [string]$governanceStatus.prompt_surface_marker } else { '' }
   $retryBudgetMarker
   $relayMarker
 ) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Set-Content -LiteralPath $OutputTextPath -Encoding UTF8

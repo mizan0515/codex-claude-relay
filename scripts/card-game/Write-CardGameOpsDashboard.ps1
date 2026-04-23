@@ -171,6 +171,17 @@ $dashboard = [ordered]@{
   } else {
     $null
   }
+  prompt_surface = if ($governance) {
+    [ordered]@{
+      status = [string]$governance.prompt_surface_status
+      marker = [string]$governance.prompt_surface_marker
+      issues = @($governance.prompt_surface_issues)
+      recommendation = [string]$governance.prompt_surface_recommendation
+      path = [string]$governance.prompt_surface_path
+    }
+  } else {
+    $null
+  }
   governance = if ($governance) {
     [ordered]@{
       status = [string]$governance.status
@@ -332,6 +343,18 @@ if ($dashboard.policy_registry) {
   foreach ($policyId in @($dashboard.policy_registry.missing_ids)) {
     $lines.Add('- Missing policy: ' + [string]$policyId)
   }
+  $lines.Add('')
+}
+if ($dashboard.prompt_surface) {
+  $lines.Add('## Prompt Surface')
+  $lines.Add('')
+  $lines.Add('- Status: ' + $dashboard.prompt_surface.status)
+  $lines.Add('- Marker: ' + $dashboard.prompt_surface.marker)
+  if ($dashboard.prompt_surface.path) { $lines.Add('- Artifact: ' + $dashboard.prompt_surface.path) }
+  foreach ($issue in @($dashboard.prompt_surface.issues) | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) }) {
+    $lines.Add('- Issue: ' + [string]$issue)
+  }
+  if ($dashboard.prompt_surface.recommendation) { $lines.Add('- Recommendation: ' + $dashboard.prompt_surface.recommendation) }
   $lines.Add('')
 }
 $lines.Add('## Governance')
