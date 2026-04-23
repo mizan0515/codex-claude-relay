@@ -38,6 +38,8 @@ $toolRegistryJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-tool-r
 $toolRegistryTextPath = Join-Path $repoRoot 'profiles\card-game\generated-tool-registry-status.txt'
 $policyRegistryJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-policy-registry-status.json'
 $policyRegistryTextPath = Join-Path $repoRoot 'profiles\card-game\generated-policy-registry-status.txt'
+$promptSurfaceJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-prompt-surface-status.json'
+$promptSurfaceTextPath = Join-Path $repoRoot 'profiles\card-game\generated-prompt-surface-status.txt'
 $routeLearningPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\route-outcomes.jsonl'
 $heuristicsJsonPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\heuristics.json'
 $heuristicsMarkdownPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\heuristics.md'
@@ -102,6 +104,13 @@ powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Get-CardGamePol
   -OutputJsonPath $policyRegistryJsonPath `
   -OutputTextPath $policyRegistryTextPath | Out-Null
 
+powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Get-CardGamePromptSurfaceStatus.ps1') `
+  -ManifestPath $resolvedManifestPath `
+  -PromptPath $promptPath `
+  -SkillBundlePath (Join-Path $repoRoot 'profiles\card-game\generated-skill-bundle.md') `
+  -OutputJsonPath $promptSurfaceJsonPath `
+  -OutputTextPath $promptSurfaceTextPath | Out-Null
+
 if ($executionMode -ne 'relay-dad') {
   powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Write-CardGameDirectPrompt.ps1') `
     -ManifestPath $resolvedManifestPath `
@@ -147,6 +156,7 @@ if ($PrepareOnly) {
   Write-Host "Agent identity: $agentIdentityTextPath"
   Write-Host "Tool registry: $toolRegistryTextPath"
   Write-Host "Policy registry: $policyRegistryTextPath"
+  Write-Host "Prompt surface: $promptSurfaceTextPath"
   if (Test-Path -LiteralPath $directPromptPath) {
     Write-Host "Direct prompt: $directPromptPath"
   }
@@ -186,6 +196,7 @@ if (-not $ForceRelay -and $executionMode -ne 'relay-dad') {
   Write-Host "Agent identity: $agentIdentityTextPath"
   Write-Host "Tool registry: $toolRegistryTextPath"
   Write-Host "Policy registry: $policyRegistryTextPath"
+  Write-Host "Prompt surface: $promptSurfaceTextPath"
   if (Test-Path -LiteralPath $directPromptPath) {
     Write-Host "Direct prompt: $directPromptPath"
   }
