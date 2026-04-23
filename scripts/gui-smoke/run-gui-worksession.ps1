@@ -11,7 +11,8 @@
 
 param(
     [Parameter(Mandatory = $true)][string]$WorkingDir,
-    [Parameter(Mandatory = $true)][string]$InitialPrompt,
+    [string]$InitialPrompt = '',
+    [string]$InitialPromptPath = '',
     [string]$SessionId = "work-$(Get-Date -Format yyyyMMdd-HHmmss)",
     [string]$ScreenshotDir = '',
     [int]$Turns = 2,
@@ -29,6 +30,18 @@ if (-not $ScreenshotDir) {
 }
 New-Item -ItemType Directory -Force -Path $ScreenshotDir | Out-Null
 $exe = Join-Path $repoRoot 'CodexClaudeRelay.Desktop\bin\Debug\net10.0-windows\CodexClaudeRelay.Desktop.exe'
+
+if ($InitialPromptPath) {
+    if (-not (Test-Path -LiteralPath $InitialPromptPath)) {
+        throw "Initial prompt path not found: $InitialPromptPath"
+    }
+
+    $InitialPrompt = Get-Content -Raw -LiteralPath $InitialPromptPath -Encoding UTF8
+}
+
+if ([string]::IsNullOrWhiteSpace($InitialPrompt)) {
+    throw 'InitialPrompt or InitialPromptPath must be provided.'
+}
 
 function Save-Screen([string]$tag) {
     $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds

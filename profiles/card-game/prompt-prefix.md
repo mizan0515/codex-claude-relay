@@ -12,6 +12,7 @@ Operating rules:
 - Do not use web search or browser tools unless the current task explicitly requires internet research. Prefer local files, Unity MCP, and compact relay evidence first.
 - Use the narrowest useful compile/test/Unity QA verification.
 - If Unity MCP is configured for this peer, prefer Unity MCP for editor verification (`read_console`, `refresh_unity`, targeted test or QA entry points) instead of broad shell logs.
+- If Unity MCP is unavailable, say `Unity MCP not used` and continue with compact artifacts. Do not call placeholder MCP resource probes with `server=invalid` or `uri=invalid`.
 - In the final handoff, say explicitly whether Unity MCP was used and name the MCP tools used, or say `Unity MCP not used`.
 - Do not mark progress complete without inspectable evidence.
 - If the task touches scripts in a folder, update the matching `*-research.md`.

@@ -469,6 +469,31 @@ public static class RelayApprovalPolicy
             return true;
         }
 
+        if (TryReadObservedMcpTool(payload, out var observedTool, out var observedServer))
+        {
+            if (string.Equals(observedTool, "list_mcp_resources", StringComparison.OrdinalIgnoreCase))
+            {
+                decision = RelayApprovalDecision.ApproveOnce;
+                reason = "Default MCP review policy auto-allows list_mcp_resources even through generic mcp_tool_call because the action is read-only discovery.";
+                return true;
+            }
+
+            if (string.Equals(observedTool, "read_mcp_resource", StringComparison.OrdinalIgnoreCase))
+            {
+                decision = RelayApprovalDecision.ApproveOnce;
+                reason = "Default MCP review policy auto-allows read_mcp_resource even through generic mcp_tool_call because the action is read-only.";
+                return true;
+            }
+
+            if (string.Equals(observedServer, "unityMCP", StringComparison.OrdinalIgnoreCase) &&
+                IsAutoAllowedUnityVerificationTool(observedTool))
+            {
+                decision = RelayApprovalDecision.ApproveOnce;
+                reason = $"Default MCP review policy auto-allows Unity verification tool '{observedTool}' because this path is broker-audited and expected for narrow QA/editor evidence collection.";
+                return true;
+            }
+        }
+
         if (LooksLikeReadOnlyMcpTelemetry(payload))
         {
             decision = RelayApprovalDecision.ApproveOnce;
@@ -965,6 +990,44 @@ public static class RelayApprovalPolicy
                payload.Contains("\"action\":\"status\"", StringComparison.OrdinalIgnoreCase) ||
                payload.Contains("\"action\": \"status\"", StringComparison.OrdinalIgnoreCase);
     }
+
+    private static bool TryReadObservedMcpTool(string? payload, out string tool, out string server)
+    {
+        tool = string.Empty;
+        server = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (document.RootElement.ValueKind != JsonValueKind.Object ||
+                !document.RootElement.TryGetProperty("item", out var itemElement) ||
+                itemElement.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            tool = TryReadString(itemElement, "tool") ?? string.Empty;
+            server = TryReadString(itemElement, "server") ?? string.Empty;
+            return !string.IsNullOrWhiteSpace(tool);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsAutoAllowedUnityVerificationTool(string tool) =>
+        string.Equals(tool, "read_console", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(tool, "refresh_unity", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(tool, "execute_menu_item", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(tool, "manage_editor", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(tool, "run_tests", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(tool, "get_test_job", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsProtectedBranchName(string? branch)
     {
