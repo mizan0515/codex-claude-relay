@@ -3,6 +3,7 @@ param(
   [string]$LoopStatusPath = '',
   [string]$ContextSurfacePath = '',
   [string]$ExecutionRoutePath = '',
+  [string]$SkillResolverPath = '',
   [string]$HeuristicsPath = '',
   [string]$OutputJsonPath = '',
   [string]$OutputMarkdownPath = ''
@@ -23,6 +24,12 @@ if (-not $ContextSurfacePath) {
 if (-not $ExecutionRoutePath) {
   $ExecutionRoutePath = Join-Path $repoRoot 'profiles\card-game\generated-execution-route.json'
 }
+if (-not $SkillResolverPath) {
+  $SkillResolverPath = Join-Path $repoRoot 'profiles\card-game\generated-skill-resolver.json'
+}
+$skillBundlePath = Join-Path $repoRoot 'profiles\card-game\generated-skill-bundle.md'
+$governancePath = Join-Path $repoRoot 'profiles\card-game\generated-governance-status.json'
+$remediationStatusPath = Join-Path $CardGameRoot '.autopilot\generated\relay-remediation-status.json'
 if (-not $HeuristicsPath) {
   $HeuristicsPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\heuristics.json'
 }
@@ -70,6 +77,9 @@ $backlogLines = if (Test-Path -LiteralPath $backlogPath) { Get-Content -LiteralP
 $loopStatus = if (Test-Path -LiteralPath $LoopStatusPath) { Get-Content -Raw -LiteralPath $LoopStatusPath -Encoding UTF8 | ConvertFrom-Json } else { $null }
 $contextSurface = if (Test-Path -LiteralPath $ContextSurfacePath) { Get-Content -Raw -LiteralPath $ContextSurfacePath -Encoding UTF8 | ConvertFrom-Json } else { $null }
 $executionRoute = if (Test-Path -LiteralPath $ExecutionRoutePath) { Get-Content -Raw -LiteralPath $ExecutionRoutePath -Encoding UTF8 | ConvertFrom-Json } else { $null }
+$skillResolver = if (Test-Path -LiteralPath $SkillResolverPath) { Get-Content -Raw -LiteralPath $SkillResolverPath -Encoding UTF8 | ConvertFrom-Json } else { $null }
+$governance = if (Test-Path -LiteralPath $governancePath) { Get-Content -Raw -LiteralPath $governancePath -Encoding UTF8 | ConvertFrom-Json } else { $null }
+$remediation = if (Test-Path -LiteralPath $remediationStatusPath) { Get-Content -Raw -LiteralPath $remediationStatusPath -Encoding UTF8 | ConvertFrom-Json } else { $null }
 $heuristics = if (Test-Path -LiteralPath $HeuristicsPath) { Get-Content -Raw -LiteralPath $HeuristicsPath -Encoding UTF8 | ConvertFrom-Json } else { $null }
 
 $topBacklog = Get-TopBacklogItem -Lines $backlogLines
@@ -108,6 +118,60 @@ $dashboard = [ordered]@{
     }
   } else {
     $null
+  }
+  skill_resolver = if ($skillResolver) {
+    [ordered]@{
+      status = [string]$skillResolver.status
+      missing_skills = @($skillResolver.missing_skills)
+      marker = [string]$skillResolver.summary_marker
+    }
+  } else {
+    $null
+  }
+  skill_bundle = [ordered]@{
+    path = if (Test-Path -LiteralPath $skillBundlePath) { $skillBundlePath } else { '' }
+    present = (Test-Path -LiteralPath $skillBundlePath)
+  }
+  governance = if ($governance) {
+    [ordered]@{
+      status = [string]$governance.status
+      reason = [string]$governance.reason
+      marker = [string]$governance.summary_marker
+      blocker_artifact_path = [string]$governance.blocker_artifact_path
+      blocker_hint = [string]$governance.blocker_hint
+      blocker_detail = [string]$governance.blocker_detail
+      recommended_action = [string]$governance.recommended_action
+      recommended_action_id = [string]$governance.recommended_action_id
+      recommended_action_label = [string]$governance.recommended_action_label
+      remediation_status_path = [string]$governance.remediation_status_path
+      remediation_report = [string]$governance.remediation_report
+      unity_verification_retry_count = $governance.unity_verification_retry_count
+      unity_verification_retry_limit = $governance.unity_verification_retry_limit
+      unity_verification_retries_left = $governance.unity_verification_retries_left
+    }
+  } else {
+    $null
+  }
+  remediation = if ($remediation) {
+    [ordered]@{
+      report = [string]$remediation.latest_remediation_report
+      retry_count = $remediation.unity_verification_retry_count
+      retry_limit = $remediation.unity_verification_retry_limit
+      retries_left = $remediation.unity_verification_retries_left
+      retry_budget_marker = [string]$remediation.retry_budget_marker
+      marker = if ($remediation.latest_remediation_report) { '[REMEDIATION] ' + [string]$remediation.latest_remediation_report } else { '' }
+      path = $remediationStatusPath
+    }
+  } else {
+    [ordered]@{
+      report = ''
+      retry_count = 0
+      retry_limit = 0
+      retries_left = 0
+      retry_budget_marker = ''
+      marker = '[REMEDIATION] no remediation yet'
+      path = $remediationStatusPath
+    }
   }
   heuristics = if ($heuristics) {
     [ordered]@{
@@ -149,6 +213,8 @@ if ($dashboard.loop) {
   $lines.Add('- Next action: ' + $dashboard.loop.next_action)
   $lines.Add('- Execution mode: ' + $dashboard.loop.execution_mode)
   $lines.Add('- Execution mode reason: ' + $dashboard.loop.execution_mode_reason)
+  if ($dashboard.loop.tool_policy_status) { $lines.Add('- Tool policy status: ' + $dashboard.loop.tool_policy_status) }
+  if ($dashboard.loop.tool_policy_marker) { $lines.Add('- Tool policy marker: ' + $dashboard.loop.tool_policy_marker) }
   if ($dashboard.loop.execution_route_path) { $lines.Add('- Execution route: ' + $dashboard.loop.execution_route_path) }
   if ($dashboard.loop.direct_prompt_path) { $lines.Add('- Direct prompt: ' + $dashboard.loop.direct_prompt_path) }
   if ($dashboard.loop.runbook_path) { $lines.Add('- Runbook: ' + $dashboard.loop.runbook_path) }
@@ -172,6 +238,42 @@ if ($dashboard.structure) {
     }
   }
 }
+$lines.Add('')
+$lines.Add('## Skill Resolver')
+$lines.Add('')
+if ($dashboard.skill_resolver) {
+  $lines.Add('- Status: ' + $dashboard.skill_resolver.status)
+  $lines.Add('- Marker: ' + $dashboard.skill_resolver.marker)
+  foreach ($skill in @($dashboard.skill_resolver.missing_skills)) {
+    $lines.Add('- Missing skill: ' + [string]$skill)
+  }
+}
+if ($dashboard.skill_bundle.present) {
+  $lines.Add('- Bundle: ' + $dashboard.skill_bundle.path)
+}
+$lines.Add('')
+$lines.Add('## Governance')
+$lines.Add('')
+if ($dashboard.governance) {
+  $lines.Add('- Status: ' + $dashboard.governance.status)
+  $lines.Add('- Reason: ' + $dashboard.governance.reason)
+  $lines.Add('- Marker: ' + $dashboard.governance.marker)
+  if ($dashboard.governance.blocker_artifact_path) { $lines.Add('- Open next: ' + $dashboard.governance.blocker_artifact_path) }
+  if ($dashboard.governance.blocker_hint) { $lines.Add('- Hint: ' + $dashboard.governance.blocker_hint) }
+  if ($dashboard.governance.blocker_detail) { $lines.Add('- Missing key(s): ' + $dashboard.governance.blocker_detail) }
+  if ($dashboard.governance.recommended_action) { $lines.Add('- Do this next: ' + $dashboard.governance.recommended_action) }
+  if ($dashboard.governance.recommended_action_label) { $lines.Add('- Desktop button: ' + $dashboard.governance.recommended_action_label) }
+  if ($dashboard.governance.remediation_report) { $lines.Add('- Last remediation report: ' + $dashboard.governance.remediation_report) }
+  if ($dashboard.governance.remediation_status_path) { $lines.Add('- Remediation artifact: ' + $dashboard.governance.remediation_status_path) }
+  if ($dashboard.governance.unity_verification_retry_count -gt 0) { $lines.Add('- Unity verification retries: ' + $dashboard.governance.unity_verification_retry_count) }
+  if ($dashboard.governance.unity_verification_retry_limit -gt 0) { $lines.Add('- Unity retry budget: ' + $dashboard.governance.unity_verification_retries_left + ' left of ' + $dashboard.governance.unity_verification_retry_limit) }
+}
+$lines.Add('')
+$lines.Add('## Remediation')
+$lines.Add('')
+if ($dashboard.remediation.marker) { $lines.Add('- Marker: ' + $dashboard.remediation.marker) }
+if ($dashboard.remediation.retry_budget_marker) { $lines.Add('- Retry budget marker: ' + $dashboard.remediation.retry_budget_marker) }
+if ($dashboard.remediation.path) { $lines.Add('- Artifact: ' + $dashboard.remediation.path) }
 $lines.Add('')
 $lines.Add('## Learning')
 $lines.Add('')

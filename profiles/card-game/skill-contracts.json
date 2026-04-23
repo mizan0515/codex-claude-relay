@@ -1,0 +1,101 @@
+{
+  "default": {
+    "required_skills": [
+      "bounded-large-cycle",
+      "compact-signal-operator"
+    ],
+    "required_evidence": [
+      "compact_manager_signal",
+      "compact_relay_signal"
+    ],
+    "forbidden_tools": [
+      "full-log-tail"
+    ]
+  },
+  "buckets": {
+    "qa-editor": {
+      "required_skills": [
+        "qa-editor-slice",
+        "unity-mcp-proof",
+        "bounded-large-cycle",
+        "compact-signal-operator"
+      ],
+      "required_evidence": [
+        "compact_manager_signal",
+        "compact_relay_signal",
+        "unity_mcp_observed"
+      ],
+      "forbidden_tools": [
+        "web",
+        "full-log-tail"
+      ]
+    },
+    "docs-or-autopilot": {
+      "required_skills": [
+        "compact-signal-operator"
+      ],
+      "required_evidence": [
+        "compact_manager_signal"
+      ],
+      "forbidden_tools": [
+        "full-log-tail"
+      ]
+    },
+    "ui-runtime": {
+      "required_skills": [
+        "bounded-large-cycle",
+        "compact-signal-operator"
+      ],
+      "required_evidence": [
+        "compact_manager_signal",
+        "compact_relay_signal"
+      ],
+      "forbidden_tools": [
+        "web",
+        "full-log-tail"
+      ]
+    },
+    "battle-runtime": {
+      "required_skills": [
+        "bounded-large-cycle",
+        "compact-signal-operator"
+      ],
+      "required_evidence": [
+        "compact_manager_signal",
+        "compact_relay_signal"
+      ],
+      "forbidden_tools": [
+        "web",
+        "full-log-tail"
+      ]
+    },
+    "map-runtime": {
+      "required_skills": [
+        "bounded-large-cycle",
+        "compact-signal-operator"
+      ],
+      "required_evidence": [
+        "compact_manager_signal",
+        "compact_relay_signal"
+      ],
+      "forbidden_tools": [
+        "web",
+        "full-log-tail"
+      ]
+    },
+    "network-runtime": {
+      "required_skills": [
+        "bounded-large-cycle",
+        "compact-signal-operator"
+      ],
+      "required_evidence": [
+        "compact_manager_signal",
+        "compact_relay_signal"
+      ],
+      "forbidden_tools": [
+        "web",
+        "full-log-tail"
+      ]
+    }
+  }
+}

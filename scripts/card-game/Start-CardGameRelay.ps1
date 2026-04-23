@@ -28,6 +28,10 @@ $runbookJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-runbook.jso
 $runbookMarkdownPath = Join-Path $repoRoot 'profiles\card-game\generated-runbook.md'
 $opsDashboardJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-ops-dashboard.json'
 $opsDashboardMarkdownPath = Join-Path $repoRoot 'profiles\card-game\generated-ops-dashboard.md'
+$skillResolverJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-skill-resolver.json'
+$skillResolverMarkdownPath = Join-Path $repoRoot 'profiles\card-game\generated-skill-resolver.md'
+$governanceJsonPath = Join-Path $repoRoot 'profiles\card-game\generated-governance-status.json'
+$governanceTextPath = Join-Path $repoRoot 'profiles\card-game\generated-governance-status.txt'
 $routeLearningPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\route-outcomes.jsonl'
 $heuristicsJsonPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\heuristics.json'
 $heuristicsMarkdownPath = Join-Path $repoRoot 'docs\card-game-integration\learning-memory\heuristics.md'
@@ -61,6 +65,18 @@ powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Write-CardGameE
   -ManifestPath $resolvedManifestPath `
   -OutputJsonPath $executionRouteJsonPath `
   -OutputMarkdownPath $executionRouteMarkdownPath
+
+powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Get-CardGameSkillResolverStatus.ps1') `
+  -ManifestPath $resolvedManifestPath `
+  -OutputJsonPath $skillResolverJsonPath `
+  -OutputMarkdownPath $skillResolverMarkdownPath | Out-Null
+
+powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Get-CardGameGovernanceStatus.ps1') `
+  -CardGameRoot 'D:\Unity\card game' `
+  -ManifestPath $resolvedManifestPath `
+  -SessionId $manifest.session_id `
+  -OutputJsonPath $governanceJsonPath `
+  -OutputTextPath $governanceTextPath | Out-Null
 
 if ($executionMode -ne 'relay-dad') {
   powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Write-CardGameDirectPrompt.ps1') `
@@ -102,6 +118,8 @@ if ($PrepareOnly) {
   Write-Host "Prompt: $promptPath"
   Write-Host "Manifest: $resolvedManifestPath"
   Write-Host "Execution route: $executionRouteMarkdownPath"
+  Write-Host "Skill resolver: $skillResolverMarkdownPath"
+  Write-Host "Governance: $governanceTextPath"
   if (Test-Path -LiteralPath $directPromptPath) {
     Write-Host "Direct prompt: $directPromptPath"
   }
@@ -136,6 +154,8 @@ if (-not $ForceRelay -and $executionMode -ne 'relay-dad') {
   Write-Host "Prompt: $promptPath"
   Write-Host "Manifest: $resolvedManifestPath"
   Write-Host "Execution route: $executionRouteMarkdownPath"
+  Write-Host "Skill resolver: $skillResolverMarkdownPath"
+  Write-Host "Governance: $governanceTextPath"
   if (Test-Path -LiteralPath $directPromptPath) {
     Write-Host "Direct prompt: $directPromptPath"
   }

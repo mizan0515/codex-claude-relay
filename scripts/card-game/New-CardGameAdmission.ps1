@@ -16,6 +16,8 @@ $operatorDecisionsPath = Join-Path $autopilotRoot 'OPERATOR-DECISIONS.md'
 $dadDecisionsPath = Join-Path $dialogueRoot 'DECISIONS.md'
 $relayRepoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $heuristicsPath = Join-Path $relayRepoRoot 'docs\card-game-integration\learning-memory\heuristics.json'
+$skillContractsPath = Join-Path $relayRepoRoot 'profiles\card-game\skill-contracts.json'
+$skillsRoot = Join-Path $relayRepoRoot 'skills\card-game'
 
 if (-not $OutputPath) {
   $OutputPath = Join-Path $env:TEMP 'cardgame-dad-admission.json'
@@ -221,6 +223,75 @@ function Get-ExecutionModeGuidance {
   }
 }
 
+function Get-SkillContract {
+  param(
+    [string]$ContractsPath,
+    [string]$Bucket
+  )
+
+  $defaultContract = [ordered]@{
+    required_skills = @()
+    required_evidence = @()
+    forbidden_tools = @()
+  }
+
+  if (-not (Test-Path -LiteralPath $ContractsPath)) {
+    return $defaultContract
+  }
+
+  try {
+    $contracts = Get-Content -Raw -LiteralPath $ContractsPath -Encoding UTF8 | ConvertFrom-Json
+    $resolved = [ordered]@{
+      required_skills = @()
+      required_evidence = @()
+      forbidden_tools = @()
+    }
+
+    if ($contracts.default) {
+      $resolved.required_skills += @($contracts.default.required_skills)
+      $resolved.required_evidence += @($contracts.default.required_evidence)
+      $resolved.forbidden_tools += @($contracts.default.forbidden_tools)
+    }
+
+    if ($contracts.buckets -and $contracts.buckets.PSObject.Properties.Name -contains $Bucket) {
+      $bucketContract = $contracts.buckets.$Bucket
+      $resolved.required_skills += @($bucketContract.required_skills)
+      $resolved.required_evidence += @($bucketContract.required_evidence)
+      $resolved.forbidden_tools += @($bucketContract.forbidden_tools)
+    }
+
+    $resolved.required_skills = @($resolved.required_skills | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $resolved.required_evidence = @($resolved.required_evidence | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    $resolved.forbidden_tools = @($resolved.forbidden_tools | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+    return $resolved
+  } catch {
+    return $defaultContract
+  }
+}
+
+function Resolve-SkillPaths {
+  param(
+    [string]$SkillsRoot,
+    [string[]]$SkillNames
+  )
+
+  $resolved = New-Object System.Collections.Generic.List[object]
+  foreach ($skillName in @($SkillNames)) {
+    if ([string]::IsNullOrWhiteSpace($skillName)) {
+      continue
+    }
+
+    $skillPath = Join-Path $SkillsRoot "$skillName\SKILL.md"
+    $resolved.Add([pscustomobject]@{
+      name = $skillName
+      path = if (Test-Path -LiteralPath $skillPath) { $skillPath } else { '' }
+      exists = [bool](Test-Path -LiteralPath $skillPath)
+    })
+  }
+
+  return $resolved.ToArray()
+}
+
 $backlogLines = if (Test-Path $backlogPath) { Get-Content -LiteralPath $backlogPath -Encoding UTF8 } else { @() }
 $stateLines = if (Test-Path $statePath) { Get-Content -LiteralPath $statePath -Encoding UTF8 } else { @() }
 $operatorDecisionLines = if (Test-Path $operatorDecisionsPath) { Get-Content -LiteralPath $operatorDecisionsPath -Encoding UTF8 } else { @() }
@@ -234,6 +305,8 @@ if (-not $item) {
 $bucket = Get-TaskBucket -Slug $item.Slug
 $readPath = Get-RecommendedReadPath -Bucket $bucket
 $bucketHeuristic = Get-HeuristicForBucket -HeuristicsPath $heuristicsPath -Bucket $bucket
+$skillContract = Get-SkillContract -ContractsPath $skillContractsPath -Bucket $bucket
+$skillPaths = Resolve-SkillPaths -SkillsRoot $skillsRoot -SkillNames $skillContract.required_skills
 $backlogHealth = Get-BacklogHealth -Path $BacklogHealthPath
 $contextSurface = Get-ContextSurface -Path $ContextSurfacePath
 $bucketSurface = $null
@@ -294,6 +367,19 @@ $manifest = [ordered]@{
   }
   guidance = [ordered]@{
     recommended_read_path = $readPath
+    required_skills = @($skillContract.required_skills)
+    required_skill_paths = @($skillPaths)
+    required_evidence = @($skillContract.required_evidence)
+    forbidden_tools = @($skillContract.forbidden_tools)
+    forbidden_tool_policy = [ordered]@{
+      full_log_tail = 'never read or tail the full relay JSONL log during routine operation; use compact signal/evidence artifacts only'
+      web = 'for Unity-local qa-editor slices, do not browse the web unless the operator explicitly asks for external research'
+    }
+    enforcement_notes = @(
+      'required_evidence is enforced by loop status and completion write-back',
+      'required_skills must be opened from required_skill_paths before broad repo exploration',
+      'forbidden_tools is a prompt/operator contract unless a deterministic gate already exists'
+    )
     verification_expectation = 'Use the narrowest compile/test/Unity QA path that can close this slice.'
     token_policy = 'Reuse stable prefix, keep one narrow slice, avoid broad repo search.'
     execution_mode = $executionMode

@@ -21,6 +21,8 @@ $contextSurfaceJsonPath = Join-Path $profileRoot 'generated-context-surface.json
 $contextSurfaceMarkdownPath = Join-Path $profileRoot 'generated-context-surface.md'
 $claudeBackendJsonPath = Join-Path $profileRoot 'generated-claude-backend.json'
 $claudeBackendMarkdownPath = Join-Path $profileRoot 'generated-claude-backend.md'
+$skillBundleJsonPath = Join-Path $profileRoot 'generated-skill-bundle.json'
+$skillBundleMarkdownPath = Join-Path $profileRoot 'generated-skill-bundle.md'
 
 if (-not $ManifestPath) {
   $ManifestPath = Join-Path $profileRoot 'generated-admission.json'
@@ -59,6 +61,11 @@ powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'New-CardGameAdm
   -OutputPath $ManifestPath `
   -BacklogHealthPath $backlogHealthJsonPath `
   -ContextSurfacePath $contextSurfaceJsonPath
+
+powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Get-CardGameSkillBundle.ps1') `
+  -ManifestPath $ManifestPath `
+  -OutputJsonPath $skillBundleJsonPath `
+  -OutputMarkdownPath $skillBundleMarkdownPath | Out-Null
 
 $promptArgs = @(
   '-ExecutionPolicy', 'Bypass',
@@ -136,6 +143,33 @@ $lines += ''
 foreach ($path in @($manifest.guidance.recommended_read_path)) {
   $lines += "- $path"
 }
+$requiredSkills = @($manifest.guidance.required_skills)
+$requiredSkillPaths = @($manifest.guidance.required_skill_paths)
+$requiredEvidence = @($manifest.guidance.required_evidence)
+$forbiddenTools = @($manifest.guidance.forbidden_tools)
+if ($requiredSkills.Count -gt 0 -or $requiredEvidence.Count -gt 0 -or $forbiddenTools.Count -gt 0) {
+  $lines += ''
+  $lines += '## Skill Contract'
+  $lines += ''
+  foreach ($skill in $requiredSkills) {
+    $lines += "- Required skill: $skill"
+  }
+  foreach ($skillRef in $requiredSkillPaths) {
+    $resolvedPath = if ($skillRef.exists) { [string]$skillRef.path } else { 'missing' }
+    $lines += "- Required skill path: $($skillRef.name) => $resolvedPath"
+  }
+  foreach ($evidence in $requiredEvidence) {
+    $lines += "- Required evidence: $evidence"
+  }
+  foreach ($tool in $forbiddenTools) {
+    $lines += "- Forbidden tool: $tool"
+  }
+  if ($manifest.guidance.enforcement_notes) {
+    foreach ($note in @($manifest.guidance.enforcement_notes)) {
+      $lines += "- Enforcement note: $note"
+    }
+  }
+}
 
 if ($manifest.guidance.learned_bucket_stats) {
   $lines += ''
@@ -157,6 +191,7 @@ $lines += "- Context surface: $contextSurfaceJsonPath"
 $lines += "- Claude backend readiness: $claudeBackendJsonPath"
 $lines += "- Admission manifest: $ManifestPath"
 $lines += "- Session prompt: $PromptPath"
+$lines += "- Skill bundle: $skillBundleMarkdownPath"
 
 $planDir = Split-Path -Parent $SessionPlanPath
 if ($planDir) {

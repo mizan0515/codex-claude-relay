@@ -14,6 +14,7 @@ $cardGameRoot = 'D:\Unity\card game'
 $backlogPath = Join-Path $cardGameRoot '.autopilot\BACKLOG.md'
 $statePath = Join-Path $cardGameRoot '.autopilot\STATE.md'
 $prefixPath = Join-Path $profileRoot 'prompt-prefix.md'
+$skillBundlePath = Join-Path $profileRoot 'generated-skill-bundle.md'
 
 if (-not $OutputPath) {
   $OutputPath = Join-Path $profileRoot 'generated-session-prompt.md'
@@ -139,6 +140,48 @@ if ($manifest) {
       $null = $builder.AppendLine("  - $path")
     }
   }
+  if ($manifest.guidance.required_skills) {
+    $null = $builder.AppendLine('- required_skills:')
+    foreach ($skill in $manifest.guidance.required_skills) {
+      $null = $builder.AppendLine("  - $skill")
+    }
+  }
+  if ($manifest.guidance.required_skill_paths) {
+    $null = $builder.AppendLine('- required_skill_paths:')
+    foreach ($skillRef in $manifest.guidance.required_skill_paths) {
+      $label = if ($skillRef.exists) {
+        "$($skillRef.name) => $($skillRef.path)"
+      } else {
+        "$($skillRef.name) => missing"
+      }
+      $null = $builder.AppendLine("  - $label")
+    }
+    $null = $builder.AppendLine('- skill_rule: open the required skill files before broad repo exploration or tool use.')
+  }
+  if ($manifest.guidance.required_evidence) {
+    $null = $builder.AppendLine('- required_evidence:')
+    foreach ($item in $manifest.guidance.required_evidence) {
+      $null = $builder.AppendLine("  - $item")
+    }
+  }
+  if ($manifest.guidance.forbidden_tools) {
+    $null = $builder.AppendLine('- forbidden_tools:')
+    foreach ($tool in $manifest.guidance.forbidden_tools) {
+      $null = $builder.AppendLine("  - $tool")
+    }
+  }
+  if ($manifest.guidance.forbidden_tool_policy) {
+    $null = $builder.AppendLine('- forbidden_tool_policy:')
+    foreach ($name in $manifest.guidance.forbidden_tool_policy.PSObject.Properties.Name) {
+      $null = $builder.AppendLine("  - ${name}: $($manifest.guidance.forbidden_tool_policy.$name)")
+    }
+  }
+  if ($manifest.guidance.enforcement_notes) {
+    $null = $builder.AppendLine('- enforcement_notes:')
+    foreach ($item in $manifest.guidance.enforcement_notes) {
+      $null = $builder.AppendLine("  - $item")
+    }
+  }
   if ($manifest.guidance.verification_expectation) {
     $null = $builder.AppendLine("- verification_expectation: $($manifest.guidance.verification_expectation)")
   }
@@ -159,6 +202,19 @@ if ($manifest) {
     if ($manifest.guidance.learned_bucket_stats.avg_turns -ne $null) {
       $null = $builder.AppendLine("  avg_turns: $($manifest.guidance.learned_bucket_stats.avg_turns)")
     }
+  }
+}
+$skillBundleLines = @()
+if (Test-Path -LiteralPath $skillBundlePath) {
+  $skillBundleLines = @(Get-Content -LiteralPath $skillBundlePath -Encoding UTF8)
+}
+if ($skillBundleLines.Count -gt 0) {
+  $null = $builder.AppendLine('- activated_skill_bundle:')
+  foreach ($line in $skillBundleLines) {
+    if ([string]::IsNullOrWhiteSpace($line)) {
+      continue
+    }
+    $null = $builder.AppendLine("  $line")
   }
 }
 $null = $builder.AppendLine('- requirement: keep the next peer handoff focused on one repo slice and one verification plan.')

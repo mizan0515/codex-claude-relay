@@ -10,6 +10,7 @@ $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path (Join-Path $scriptRoot '..\..')
 $generatedRoot = Join-Path $CardGameRoot '.autopilot\generated'
 $loopStatusPath = Join-Path $repoRoot 'profiles\card-game\generated-loop-status.json'
+$governanceStatusPath = Join-Path $repoRoot 'profiles\card-game\generated-governance-status.json'
 
 if (-not $OutputJsonPath) {
   $OutputJsonPath = Join-Path $generatedRoot 'relay-manager-signal.json'
@@ -36,6 +37,20 @@ if (-not (Test-Path -LiteralPath $loopStatusPath)) {
 }
 
 $loopStatus = Read-JsonFile -Path $loopStatusPath
+$governanceArgs = @(
+  '-ExecutionPolicy', 'Bypass',
+  '-File', (Join-Path $scriptRoot 'Get-CardGameGovernanceStatus.ps1'),
+  '-CardGameRoot', $CardGameRoot,
+  '-OutputJsonPath', $governanceStatusPath
+)
+if ($loopStatus -and $loopStatus.session_id) {
+  $governanceArgs += @('-SessionId', [string]$loopStatus.session_id)
+}
+try {
+  & powershell @governanceArgs | Out-Null
+} catch {
+}
+$governanceStatus = Read-JsonFile -Path $governanceStatusPath
 $relaySignal = $null
 try {
   $relaySignal = & powershell -ExecutionPolicy Bypass -File (Join-Path $scriptRoot 'Get-CardGameRelaySignal.ps1') -CardGameRoot $CardGameRoot | ConvertFrom-Json
@@ -143,7 +158,24 @@ elseif ($loopStatus) {
   }
 }
 
+if ($governanceStatus -and [string]$governanceStatus.status -eq 'blocked') {
+  $overallStatus = 'governance_blocked'
+  $reason = [string]$governanceStatus.reason
+  $suggestedDesktopAction = 'fix_blocker'
+  $waitShouldEnd = $true
+  $attentionRequired = $true
+}
+
 $sessionId = if ($relaySignal -and $relaySignal.session_id) { [string]$relaySignal.session_id } elseif ($loopStatus) { [string]$loopStatus.session_id } else { '' }
+$preparedSessionId = if ($loopStatus) { [string]$loopStatus.session_id } else { '' }
+$governanceSessionId = if ($governanceStatus) { [string]$governanceStatus.session_id } else { '' }
+if ($overallStatus -eq 'governance_blocked') {
+  if ($governanceSessionId) {
+    $sessionId = $governanceSessionId
+  } elseif ($preparedSessionId) {
+    $sessionId = $preparedSessionId
+  }
+}
 $taskSlug = if ($loopStatus) { [string]$loopStatus.resolved_task_slug } else { '' }
 $nextAction = switch ($overallStatus) {
   'approval_required' { 'blocked' }
@@ -158,6 +190,18 @@ $relayStatus = if ($relaySignal) { [string]$relaySignal.status } else { 'none' }
 $relayMarker = if ($relaySignal) { [string]$relaySignal.signal_marker } else { '[RELAY_SIGNAL] status=missing session=(none) turn=0 role=(none) progress_age=unknown watchdog=unknown approvals=0' }
 $managerSignalMarker = "[MANAGER_SIGNAL] overall=$overallStatus next=$nextAction session=$(if ($sessionId) { $sessionId } else { '(none)' }) task=$(if ($taskSlug) { $taskSlug } else { '(none)' }) action=$suggestedDesktopAction attention=$($attentionRequired.ToString().ToLowerInvariant())"
 $managerDoneMarker = "[MANAGER_DONE] $($waitShouldEnd.ToString().ToLowerInvariant()) success=$($success.ToString().ToLowerInvariant()) reason=$reason"
+$governanceMarker = if ($governanceStatus) { [string]$governanceStatus.summary_marker } else { '' }
+$retryBudgetActive = $governanceStatus -and [bool]$governanceStatus.unity_verification_retry_budget_active
+$retryBudgetExhausted = $retryBudgetActive -and
+  ([int]$governanceStatus.unity_verification_retry_limit -gt 0) -and
+  ([int]$governanceStatus.unity_verification_retries_left -le 0)
+$retryBudgetMarker = if ($retryBudgetExhausted) {
+  '[RETRY_BUDGET] exhausted unity_verification'
+} elseif ($retryBudgetActive -and [int]$governanceStatus.unity_verification_retry_limit -gt 0) {
+  "[RETRY_BUDGET] left=$([int]$governanceStatus.unity_verification_retries_left) limit=$([int]$governanceStatus.unity_verification_retry_limit)"
+} else {
+  ''
+}
 
 $summary = [ordered]@{
   generated_at = (Get-Date).ToString('o')
@@ -176,6 +220,23 @@ $summary = [ordered]@{
   wait_should_end = $waitShouldEnd
   success = $success
   attention_required = $attentionRequired
+  governance_status = if ($governanceStatus) { [string]$governanceStatus.status } else { '' }
+  governance_reason = if ($governanceStatus) { [string]$governanceStatus.reason } else { '' }
+  governance_marker = if ($governanceStatus) { [string]$governanceStatus.summary_marker } else { '' }
+  blocker_artifact_path = if ($governanceStatus) { [string]$governanceStatus.blocker_artifact_path } else { '' }
+  blocker_hint = if ($governanceStatus) { [string]$governanceStatus.blocker_hint } else { '' }
+  blocker_detail = if ($governanceStatus) { [string]$governanceStatus.blocker_detail } else { '' }
+  recommended_action = if ($governanceStatus) { [string]$governanceStatus.recommended_action } else { '' }
+  recommended_action_id = if ($governanceStatus) { [string]$governanceStatus.recommended_action_id } else { '' }
+  recommended_action_label = if ($governanceStatus) { [string]$governanceStatus.recommended_action_label } else { '' }
+  remediation_status_path = if ($governanceStatus) { [string]$governanceStatus.remediation_status_path } else { '' }
+  remediation_report = if ($governanceStatus) { [string]$governanceStatus.remediation_report } else { '' }
+  unity_verification_retry_count = if ($governanceStatus) { [int]$governanceStatus.unity_verification_retry_count } else { 0 }
+  unity_verification_retry_limit = if ($governanceStatus) { [int]$governanceStatus.unity_verification_retry_limit } else { 0 }
+  unity_verification_retries_left = if ($governanceStatus) { [int]$governanceStatus.unity_verification_retries_left } else { 0 }
+  unity_verification_retry_budget_active = [bool]$retryBudgetActive
+  retry_budget_exhausted = [bool]$retryBudgetExhausted
+  retry_budget_marker = $retryBudgetMarker
   relay_signal_marker = $relayMarker
   relay_done_marker = if ($relaySignal) { [string]$relaySignal.done_marker } else { '[RELAY_DONE] false status=missing reason=no_signal' }
   manager_signal_marker = $managerSignalMarker
@@ -191,7 +252,9 @@ $summary | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $OutputJsonPath -E
 @(
   $managerSignalMarker
   $managerDoneMarker
+  $governanceMarker
+  $retryBudgetMarker
   $relayMarker
-) | Set-Content -LiteralPath $OutputTextPath -Encoding UTF8
+) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Set-Content -LiteralPath $OutputTextPath -Encoding UTF8
 
 Write-Output ($summary | ConvertTo-Json -Depth 6)

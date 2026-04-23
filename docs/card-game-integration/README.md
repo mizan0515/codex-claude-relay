@@ -20,12 +20,16 @@ call when a task needs Codex <-> Claude peer turns.
   - recommended broker limits for short Unity slices
 - `profiles/card-game/prompt-prefix.md`
   - stable session prefix meant to maximize cache reuse
+- `profiles/card-game/skill-contracts.json`
+  - bucket-to-skill contract map for required skills, required evidence, and forbidden tools
 - `scripts/card-game/Install-CardGameProfile.ps1`
   - installs the card-game profile into `%LocalAppData%\CodexClaudeRelayMvp`
 - `scripts/card-game/New-CardGameSessionPrompt.ps1`
   - builds a session prompt from the stable prefix plus a narrow task tail
 - `scripts/card-game/New-CardGameSession.ps1`
   - prepares heuristics, admission, prompt, and a small session plan in one step
+- `skills/card-game/*`
+  - local skill catalog for repeated relay/autopilot workflows such as QA editor slices, Unity MCP proof, bounded cycles, and compact operator status
 - `scripts/card-game/Write-CardGameExecutionRoute.ps1`
   - converts the admission manifest into an execution-mode artifact so the loop can skip expensive relay runs when direct Codex or docs-lite is cheaper
 - `scripts/card-game/Write-CardGameDirectPrompt.ps1`
@@ -58,6 +62,8 @@ call when a task needs Codex <-> Claude peer turns.
   - merges relay liveness plus loop status into one compact manager signal so Desktop/autopilot can see death, wait-stop, and next action without reading multiple artifacts
 - `scripts/card-game/Get-CardGameRelayEvidence.ps1`
   - reads one compact relay session evidence summary so operators can confirm whether MCP activity was observed without opening the full JSONL log
+- `scripts/card-game/Get-CardGameRequiredEvidenceStatus.ps1`
+  - resolves whether the current manifest's required evidence is actually present so loop status and completion can hard-stop on missing proof
 - `scripts/card-game/Watch-RelaySignalLiveness.ps1`
   - detached watcher that rewrites live signals to `Stale` if the Desktop relay process disappears unexpectedly, then refreshes the manager signal artifact
 - `scripts/card-game/Wait-CardGameRelaySignal.ps1`
@@ -76,28 +82,36 @@ call when a task needs Codex <-> Claude peer turns.
 1. Keep task selection in `D:\Unity\card game\.autopilot`.
 2. Admit only one narrow slice at a time into DAD.
 3. Generate the relay prompt from a stable prefix plus a short task tail.
-4. Run the relay against `D:\Unity\card game` as the working directory.
-5. Require compile/test/QA evidence before writing progress back to
+4. Carry an explicit skill contract in the admission manifest:
+   - required skills
+   - required evidence
+   - forbidden tools
+5. Run the relay against `D:\Unity\card game` as the working directory.
+6. Require compile/test/QA evidence before writing progress back to
    `.autopilot` or `Document/dialogue/`.
-6. After the relay closes in a terminal state, run the completion step to
+7. Treat missing required evidence as a hard stop for terminal-session
+   completion instead of a soft warning.
+8. Treat detectable forbidden-tool violations such as `web` on Unity-local slices as a hard stop for terminal-session completion.
+9. After the relay closes in a terminal state, run the completion step to
    update heuristics plus `.autopilot/STATE.md`, `HISTORY.md`, and
    `METRICS.jsonl`.
-7. Treat backlog corruption warnings as a scope freeze until the live
+10. Treat backlog corruption warnings as a scope freeze until the live
    `BACKLOG.md` line is re-read locally or normalized.
-8. Prefer the loop runner when you want relay execution to honor `HALT`,
+11. Prefer the loop runner when you want relay execution to honor `HALT`,
    backlog health, and operator decision state in one place.
-9. After a terminal session is integrated, the loop status resolver treats it
+12. After a terminal session is integrated, the loop status resolver treats it
    as already consumed and moves back to `prepare` for the next slice.
-10. Terminal session completion archives the consumed manifest and clears the
+13. Terminal session completion archives the consumed manifest and clears the
     generated manifest/prompt/plan so the next prepare pass starts fresh.
-11. After each relay execution, the loop runner refreshes backlog/loop status
+14. After each relay execution, the loop runner refreshes backlog/loop status
     so a multi-session run can keep advancing instead of reusing stale state.
-12. Let execution mode decide whether the desktop relay should actually run.
+15. Let execution mode decide whether the desktop relay should actually run.
     `direct-codex` and `docs-lite` are valid outcomes for Unity cost control,
     and the generated route artifact makes that explicit.
-13. If a prepared manifest resolves to `route`, do not keep re-running the
+16. If a prepared manifest resolves to `route`, do not keep re-running the
     desktop relay. Consume the generated route artifact and execute the
     cheaper path instead.
+17. For `qa-editor` slices, treat `unity_mcp_observed` as required evidence instead of a soft preference.
 
 ## Operator Quick Path
 
@@ -131,7 +145,21 @@ The text signal always starts with these sentinel lines:
 - `[RELAY_SIGNAL] ...`
 - `[RELAY_DONE] true|false ...`
 
+When governance blocks a slice, manager text also includes:
+- `[GOVERNANCE] status=... reason=... attention=...`
+- `[RETRY_BUDGET] exhausted unity_verification` or `[RETRY_BUDGET] left=... limit=...` when retry budgeting is active
+
 These are the only lines an LLM or operator needs to read for routine status checks.
+When the block needs a specific follow-up artifact, the JSON manager signal now also carries:
+- `blocker_artifact_path`
+- `blocker_hint`
+- `blocker_detail`
+- `recommended_action`
+- `recommended_action_id`
+- `recommended_action_label`
+
+Unity retry budget is now only active when the current blocker is actually the missing `unity_mcp_observed` proof.
+If the current blocker is something else, manager signal no longer pretends the Unity retry budget is already exhausted.
 
 ## Codex Desktop Only Path
 
@@ -171,6 +199,29 @@ What `Managed Next Step` adds:
 - reads `suggested_desktop_action` from the compact manager signal and executes only that one action
 - lets Desktop handle `prepare`, `run`, or `complete` without the operator deciding which script should run
 - stops immediately on `route_only`, `blocked`, `halted`, or `wait_for_signal`
+- shows the governance stop reason directly in `Managed Autopilot Status` so the operator does not have to decode the signal file
+- shows the exact blocker artifact path when governance says a proof or policy file must be opened next
+- refreshes governance while reading the manager signal so stale blocker state does not hide behind an older relay mismatch
+- shows the exact missing key, such as `unity_mcp_observed`, instead of forcing the operator to open JSON just to discover the field name
+- shows one recommended next action sentence derived from the missing key or policy violation
+- changes the blocker button label to match the current blocker type, such as `Open Required Evidence` or `Open Tool Policy`
+- can execute lightweight runtime actions for some blocker types, such as refreshing compact signals instead of only opening a file
+- can execute a bounded remediation run for `unity_mcp_observed`, where Desktop prepares a fresh relay slice and retries Unity verification directly
+- records the last remediation result directly in `Managed Autopilot Status` and `Easy Status`, so the operator can see whether the retry helped
+- mirrors the last remediation result into compact artifacts:
+  - `D:\Unity\card game\.autopilot\generated\relay-remediation-status.json`
+  - `D:\Unity\card game\.autopilot\generated\relay-remediation-status.txt`
+- remediation artifacts now include the same retry-budget summary used by manager signal:
+  - `[RETRY_BUDGET] exhausted unity_verification`
+  - `[RETRY_BUDGET] left=... limit=...`
+- ops dashboard now mirrors both `[REMEDIATION] ...` and `[RETRY_BUDGET] ...` so all compact operator surfaces stay aligned
+- when no remediation has run yet, dashboard now shows `[REMEDIATION] no remediation yet` instead of leaving the section blank
+- when Desktop writes a new remediation artifact, it now refreshes both the manager signal and the ops dashboard immediately so the compact surfaces stay on the same tick
+- after Desktop writes a remediation artifact and refreshes those compact files, it also re-reads the manager signal immediately so `Managed Autopilot Status` and `Easy Status` update on the same tick instead of waiting for the next timer refresh
+- governance now reads that remediation artifact back in, so a recent Unity verification retry can downgrade the next button from another blind retry to `Open Required Evidence`
+- after repeated Unity verification retries, governance can escalate the button all the way to a human-attention path instead of retrying forever
+- retry budget is now explicit in the Desktop status text and the button label, so the operator can see how many automatic Unity verification retries remain
+- when the Unity retry budget reaches zero, the Desktop managed/easy status surfaces switch to a stronger warning palette
 
 What `Managed Run Until Attention` adds:
 - repeats manager-directed steps until the compact manager signal says attention is required or waiting should end
@@ -184,7 +235,19 @@ What `Easy Start` adds:
 - repairs a stale relay automatically before starting the next bounded session
 - if the relay dies during that safe session, retries one more fresh session automatically before asking the human to intervene
 - refreshes `Easy Status` and `Managed Autopilot Status` from the compact manager signal every few seconds so the screen does not look frozen while a retry is happening
+- shows a plain-language governance reason such as missing Unity MCP proof instead of only showing `fix_blocker`
+- shows `What file to read next` when a blocker artifact exists, so the operator is pointed at one compact file instead of the full log surface
+- shows `What exact key is missing` when governance already knows the missing proof or policy key
+- shows `What to do now` so the operator does not have to infer the remediation from the raw key name
 - stops again after one safe session so the operator never gets trapped in an invisible long loop
+- works with `Open Blocker File`, which opens the compact blocker artifact directly from Desktop
+
+## Admin Infinite Prompt
+
+For a stable admin-operated autopilot loop, use:
+- [AUTOPILOT-ADMIN-PROMPT.md](D:/cardgame-dad-relay/docs/card-game-integration/AUTOPILOT-ADMIN-PROMPT.md)
+
+That prompt is designed for repeated Codex Desktop copy-paste use and keeps the operator on the compact manager / relay / evidence surfaces only.
 
 Bounded retry proof:
 - `scripts/gui-smoke/run-gui-easy-operator.ps1 -InjectRelayDeathOnce` simulates one relay death after `Easy Start` reaches `relay_active`

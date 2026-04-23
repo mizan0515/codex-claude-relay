@@ -35,6 +35,8 @@ if (-not $LearningRecordPath) {
 }
 
 $relayEvidenceScriptPath = Join-Path $PSScriptRoot 'Get-CardGameRelayEvidence.ps1'
+$requiredEvidenceScriptPath = Join-Path $PSScriptRoot 'Get-CardGameRequiredEvidenceStatus.ps1'
+$toolPolicyScriptPath = Join-Path $PSScriptRoot 'Get-CardGameToolPolicyStatus.ps1'
 
 if (-not (Test-Path -LiteralPath $SessionStatePath)) {
   throw "Session state not found: $SessionStatePath"
@@ -306,6 +308,30 @@ if ($relayEvidence) {
   }
 }
 
+$requiredEvidenceStatus = $null
+if (Test-Path -LiteralPath $requiredEvidenceScriptPath) {
+  try {
+    $requiredEvidenceStatus = & powershell -ExecutionPolicy Bypass -File $requiredEvidenceScriptPath `
+      -CardGameRoot $CardGameRoot `
+      -ManifestPath $ManifestPath `
+      -SessionId $sessionId | ConvertFrom-Json
+  } catch {
+    $requiredEvidenceStatus = $null
+  }
+}
+
+$toolPolicyStatus = $null
+if (Test-Path -LiteralPath $toolPolicyScriptPath) {
+  try {
+    $toolPolicyStatus = & powershell -ExecutionPolicy Bypass -File $toolPolicyScriptPath `
+      -CardGameRoot $CardGameRoot `
+      -ManifestPath $ManifestPath `
+      -SessionId $sessionId | ConvertFrom-Json
+  } catch {
+    $toolPolicyStatus = $null
+  }
+}
+
 $metrics = [ordered]@{
   iter = $nextIteration
   ts = (Get-Date).ToString('o')
@@ -334,6 +360,11 @@ $metrics = [ordered]@{
   relay_cost_codex_usd = if ($learning) { $learning.total_cost_codex_usd } else { 0 }
   relay_unity_mcp_calls = $relayUnityMcpCalls
   relay_event_log_path = $relayEventLogPath
+  relay_required_evidence_status = if ($requiredEvidenceStatus) { [string]$requiredEvidenceStatus.status } else { '' }
+  relay_required_evidence_missing = if ($requiredEvidenceStatus) { @($requiredEvidenceStatus.missing_evidence) } else { @() }
+  relay_required_evidence_ok = if ($requiredEvidenceStatus) { [bool]$requiredEvidenceStatus.all_required_evidence_present } else { $true }
+  relay_tool_policy_status = if ($toolPolicyStatus) { [string]$toolPolicyStatus.status } else { '' }
+  relay_tool_policy_violations = if ($toolPolicyStatus) { @($toolPolicyStatus.violations) } else { @() }
 }
 
 if ($WhatIf) {
