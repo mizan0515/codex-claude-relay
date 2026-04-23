@@ -34,6 +34,21 @@ switch ($Verb) {
       Write-Warning "core.hooksPath set, but $expected/commit-msg missing (trailer gates inactive)."
     }
 
+    # Soft tripwires — warn only, never halt doctor. Helpers sourced
+    # from autopilot-template/helpers/ (see tools/README or upstream).
+    if (Test-Path 'tools/Get-AgentCliVersions.ps1') {
+      $cliJson = & pwsh -NoProfile -File 'tools/Get-AgentCliVersions.ps1' -AsJson 2>$null
+      if ($cliJson) { Write-Host "agent-cli versions: $cliJson" }
+    }
+    if (Test-Path 'tools/Test-RepoIdentityDrift.ps1') {
+      & pwsh -NoProfile -File 'tools/Test-RepoIdentityDrift.ps1' 2>$null | Out-Null
+      if ($LASTEXITCODE -ne 0) { Write-Warning "repo-identity drift detected (see tools/Test-RepoIdentityDrift.ps1 output)" }
+    }
+    if (Test-Path 'tools/Test-ActiveAgentSession.ps1') {
+      & pwsh -NoProfile -File 'tools/Test-ActiveAgentSession.ps1' 2>$null | Out-Null
+      if ($LASTEXITCODE -eq 5) { Write-Host "active agent session detected (self-update paths will refuse)" }
+    }
+
     Write-Host "ok (remote $remote)"
   }
 
