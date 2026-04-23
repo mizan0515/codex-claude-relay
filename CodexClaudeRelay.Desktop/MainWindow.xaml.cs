@@ -2833,13 +2833,16 @@ public partial class MainWindow : Window
             ? @"D:\Unity\card game"
             : ManagedCardGameRootTextBox.Text.Trim();
         var managerSignal = await LoadManagerSignalAsync(cardGameRoot, cancellationToken);
+        var resolvedTaskSlug = !string.IsNullOrWhiteSpace(managerSignal?.ResolvedTaskSlug)
+            ? managerSignal.ResolvedTaskSlug
+            : ManagedTaskSlugTextBox.Text?.Trim() ?? string.Empty;
 
         ManagedStatusTextBox.Text = managerSignal is null
             ? "Managed status not available."
             : $"Overall: {managerSignal.OverallStatus}{Environment.NewLine}" +
               $"Reason: {managerSignal.Reason}{Environment.NewLine}" +
               $"Next action: {managerSignal.NextAction}{Environment.NewLine}" +
-              $"Task slug: {managerSignal.ResolvedTaskSlug}{Environment.NewLine}" +
+              $"Task slug: {resolvedTaskSlug}{Environment.NewLine}" +
               $"Session: {managerSignal.SessionId}{Environment.NewLine}" +
               $"Relay status: {managerSignal.RelayStatus}{Environment.NewLine}" +
               $"Suggested action: {managerSignal.SuggestedDesktopAction}{Environment.NewLine}" +
@@ -2851,7 +2854,7 @@ public partial class MainWindow : Window
             ? "Easy status is not available."
             : $"What is happening: {BuildEasyOverallLabel(managerSignal.OverallStatus)}{Environment.NewLine}" +
               $"What the app is doing next: {BuildEasyActionLabel(managerSignal.SuggestedDesktopAction)}{Environment.NewLine}" +
-              $"Task: {managerSignal.ResolvedTaskSlug}{Environment.NewLine}" +
+              $"Task: {resolvedTaskSlug}{Environment.NewLine}" +
               $"Need a human now: {(managerSignal.AttentionRequired ? "yes" : "no")}{Environment.NewLine}" +
               $"Can stop waiting now: {(managerSignal.WaitShouldEnd ? "yes" : "no")}";
     }
