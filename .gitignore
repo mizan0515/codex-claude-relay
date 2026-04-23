@@ -26,8 +26,10 @@ examples/
 profiles/card-game/generated-*.json
 profiles/card-game/generated-*.md
 
-# Claude Code local state
-.claude/
+# Claude Code local state (track only the shared output caps —
+# PITFALLS 2026-04-24 Opus 4.7 token inflation)
+.claude/*
+!.claude/settings.json
 
 # Local dev notes (not for publication)
 DERIVATION.md
